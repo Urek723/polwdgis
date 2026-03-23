@@ -1,0 +1,82 @@
+/*
+ * map-fix.css
+ * Fixes modal z-index stacking over Leaflet map container.
+ * Include this AFTER layout.php styles and Leaflet CSS.
+ *
+ * Drop this file in: frontend/css/map-fix.css
+ * Then add to map.php (inside <head>, after leaflet.min.css):
+ *   <link rel="stylesheet" href="../css/map-fix.css">
+ */
+
+/* ── Leaflet containment fix ─────────────────────────────────
+   Leaflet's internal pane system creates its own stacking
+   contexts. Cap every pane below modal z-index (1000).        */
+.leaflet-pane,
+.leaflet-tile-pane,
+.leaflet-overlay-pane,
+.leaflet-shadow-pane,
+.leaflet-marker-pane,
+.leaflet-tooltip-pane,
+.leaflet-popup-pane {
+    z-index: 200 !important;
+}
+
+/* Leaflet built-in control widgets (zoom, attribution) */
+.leaflet-top,
+.leaflet-bottom {
+    z-index: 300 !important;
+}
+
+/* ── Map-specific toolbar / legend / overlays ────────────────
+   Keep these above Leaflet controls but below modals.         */
+#map-toolbar {
+    z-index: 350 !important;
+}
+
+#legend {
+    z-index: 350 !important;
+}
+
+#coord-display {
+    z-index: 350 !important;
+}
+
+#coord-input-panel {
+    z-index: 350 !important;
+}
+
+/* Side panel sits next to map — below modal */
+#map-panel {
+    z-index: 360 !important;
+}
+
+/* ── Toast container — always on top of everything ───────────*/
+.toast-container {
+    z-index: 1100 !important;
+}
+
+/* ── Modal overlay — must be the highest map-page layer ──────
+   layout.php originally sets .modal-overlay at z-index 200,
+   which gets swallowed by Leaflet panes on map.php.
+   Override to 1000 so it always floats above the map.        */
+.modal-overlay {
+    z-index: 1000 !important;
+}
+
+/* Ensure the box itself participates correctly in the
+   fixed-position overlay stacking context.                    */
+.modal-overlay .modal-box,
+.modal-overlay .modal {
+    position: relative;
+    z-index: 1; /* relative to the overlay, not the page */
+}
+
+/* ── Prevent map container from creating a rogue
+   stacking context that could trap the modal behind it.
+   Leaflet sets transform on .leaflet-map-pane; this is
+   intentional for tile rendering but doesn't affect our
+   fixed-position modal as long as the modal is NOT a
+   descendant of #map. Guard clause just in case.              */
+#map {
+    isolation: auto !important; /* do not create an isolation context */
+}
