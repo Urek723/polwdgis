@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Apr 14, 2026 at 03:01 PM
+-- Generation Time: Apr 14, 2026 at 03:32 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -149,7 +149,7 @@ CREATE TABLE `consumers_auth` (
 
 CREATE TABLE `consumer_requests` (
   `id` int(10) UNSIGNED NOT NULL,
-  `consumer_id` int(10) UNSIGNED NOT NULL,
+  `consumer_id` int(10) UNSIGNED DEFAULT NULL,
   `consumer_auth_id` int(10) UNSIGNED DEFAULT NULL,
   `request_type` enum('New Connection','Disconnection','Reconnection','Repair','Billing Dispute','Other') NOT NULL,
   `subject` varchar(200) DEFAULT NULL,
@@ -371,6 +371,7 @@ CREATE TABLE `notifications` (
   `id` int(10) UNSIGNED NOT NULL,
   `user_id` int(10) UNSIGNED DEFAULT NULL,
   `consumer_id` int(10) UNSIGNED DEFAULT NULL,
+  `consumer_auth_id` int(10) UNSIGNED DEFAULT NULL,
   `type` enum('interruption','alert','reminder','message','system') NOT NULL,
   `title` varchar(200) NOT NULL,
   `message` text DEFAULT NULL,
@@ -836,7 +837,8 @@ ALTER TABLE `maintenance_schedule`
 -- Indexes for table `notifications`
 --
 ALTER TABLE `notifications`
-  ADD PRIMARY KEY (`id`);
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_notif_consumer_auth` (`consumer_auth_id`);
 
 --
 -- Indexes for table `parcels`
@@ -1129,7 +1131,7 @@ ALTER TABLE `communication_history`
 -- Constraints for table `consumer_requests`
 --
 ALTER TABLE `consumer_requests`
-  ADD CONSTRAINT `consumer_requests_ibfk_1` FOREIGN KEY (`consumer_id`) REFERENCES `consumers` (`id`);
+  ADD CONSTRAINT `consumer_requests_ibfk_1` FOREIGN KEY (`consumer_id`) REFERENCES `consumers` (`id`) ON DELETE SET NULL ON UPDATE CASCADE;
 
 --
 -- Constraints for table `consumption_records`

@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Apr 14, 2026 at 03:00 PM
+-- Generation Time: Apr 14, 2026 at 03:32 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -50,7 +50,10 @@ INSERT INTO `activity_logs` (`id`, `user_id`, `action`, `table_name`, `record_id
 (5, 3, 'save_work_order', 'work_orders', '16', 'Pressure Test', '::1', '2026-04-14 17:20:18'),
 (6, 3, 'login', 'users', '3', 'User logged in', '::1', '2026-04-14 17:24:42'),
 (7, 3, 'logout', 'users', '3', 'User logged out', '::1', '2026-04-14 17:47:31'),
-(8, 3, 'login', 'users', '3', 'User logged in', '::1', '2026-04-14 20:53:53');
+(8, 3, 'login', 'users', '3', 'User logged in', '::1', '2026-04-14 20:53:53'),
+(9, 0, 'login_failed', 'users', '12344', 'Invalid credentials', '::1', '2026-04-14 21:30:43'),
+(10, 3, 'login', 'users', '3', 'User logged in', '::1', '2026-04-14 21:30:51'),
+(11, 3, 'logout', 'users', '3', 'User logged out', '::1', '2026-04-14 21:31:14');
 
 -- --------------------------------------------------------
 
@@ -433,7 +436,7 @@ INSERT INTO `consumers_auth` (`id`, `name`, `account_number`, `contact_number`, 
 
 CREATE TABLE `consumer_requests` (
   `id` int(10) UNSIGNED NOT NULL,
-  `consumer_id` int(10) UNSIGNED NOT NULL,
+  `consumer_id` int(10) UNSIGNED DEFAULT NULL,
   `consumer_auth_id` int(10) UNSIGNED DEFAULT NULL,
   `request_type` enum('New Connection','Disconnection','Reconnection','Repair','Billing Dispute','Other') NOT NULL,
   `subject` varchar(200) DEFAULT NULL,
@@ -823,6 +826,7 @@ CREATE TABLE `notifications` (
   `id` int(10) UNSIGNED NOT NULL,
   `user_id` int(10) UNSIGNED DEFAULT NULL,
   `consumer_id` int(10) UNSIGNED DEFAULT NULL,
+  `consumer_auth_id` int(10) UNSIGNED DEFAULT NULL,
   `type` enum('interruption','alert','reminder','message','system') NOT NULL,
   `title` varchar(200) NOT NULL,
   `message` text DEFAULT NULL,
@@ -834,12 +838,12 @@ CREATE TABLE `notifications` (
 -- Dumping data for table `notifications`
 --
 
-INSERT INTO `notifications` (`id`, `user_id`, `consumer_id`, `type`, `title`, `message`, `is_read`, `created_at`) VALUES
-(1, 2, NULL, 'alert', 'Work Order Assigned', 'You have been assigned a new work order', 0, '2026-04-14 17:11:31'),
-(2, 3, NULL, 'system', 'Inventory Low', 'PVC Pipe stock is below reorder level', 0, '2026-04-14 17:11:31'),
-(3, 2, NULL, 'interruption', 'Water Interruption', 'Scheduled maintenance tomorrow', 0, '2026-04-14 17:11:31'),
-(4, 1, NULL, 'reminder', 'Report Due', 'Monthly GIS report pending', 0, '2026-04-14 17:11:31'),
-(5, 3, NULL, 'message', 'Consumer Complaint', 'New billing dispute received', 0, '2026-04-14 17:11:31');
+INSERT INTO `notifications` (`id`, `user_id`, `consumer_id`, `consumer_auth_id`, `type`, `title`, `message`, `is_read`, `created_at`) VALUES
+(1, 2, NULL, NULL, 'alert', 'Work Order Assigned', 'You have been assigned a new work order', 0, '2026-04-14 17:11:31'),
+(2, 3, NULL, NULL, 'system', 'Inventory Low', 'PVC Pipe stock is below reorder level', 0, '2026-04-14 17:11:31'),
+(3, 2, NULL, NULL, 'interruption', 'Water Interruption', 'Scheduled maintenance tomorrow', 0, '2026-04-14 17:11:31'),
+(4, 1, NULL, NULL, 'reminder', 'Report Due', 'Monthly GIS report pending', 0, '2026-04-14 17:11:31'),
+(5, 3, NULL, NULL, 'message', 'Consumer Complaint', 'New billing dispute received', 0, '2026-04-14 17:11:31');
 
 -- --------------------------------------------------------
 
@@ -1440,7 +1444,8 @@ ALTER TABLE `maintenance_schedule`
 -- Indexes for table `notifications`
 --
 ALTER TABLE `notifications`
-  ADD PRIMARY KEY (`id`);
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_notif_consumer_auth` (`consumer_auth_id`);
 
 --
 -- Indexes for table `parcels`
@@ -1537,7 +1542,7 @@ ALTER TABLE `work_order_updates`
 -- AUTO_INCREMENT for table `activity_logs`
 --
 ALTER TABLE `activity_logs`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
 
 --
 -- AUTO_INCREMENT for table `chatbot_messages`
@@ -1733,7 +1738,7 @@ ALTER TABLE `communication_history`
 -- Constraints for table `consumer_requests`
 --
 ALTER TABLE `consumer_requests`
-  ADD CONSTRAINT `consumer_requests_ibfk_1` FOREIGN KEY (`consumer_id`) REFERENCES `consumers` (`id`);
+  ADD CONSTRAINT `consumer_requests_ibfk_1` FOREIGN KEY (`consumer_id`) REFERENCES `consumers` (`id`) ON DELETE SET NULL ON UPDATE CASCADE;
 
 --
 -- Constraints for table `consumption_records`
