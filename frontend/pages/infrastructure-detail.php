@@ -47,6 +47,7 @@ $typeEmojis = [
 $emoji     = $typeEmojis[$infra['type']] ?? '📌';
 $typeLabel = ucwords(str_replace('_', ' ', $infra['type']));
 ?>
+
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 
@@ -55,44 +56,63 @@ $typeLabel = ucwords(str_replace('_', ' ', $infra['type']));
   display: flex;
   align-items: center;
   gap: 16px;
-  margin-bottom: 20px;
+  margin-bottom: 24px;
   flex-wrap: wrap;
 }
+
 .detail-icon {
-  width: 60px; height: 60px;
+  width: 60px; 
+  height: 60px;
   background: rgba(0,87,255,0.15);
   border: 1px solid rgba(0,87,255,0.3);
   border-radius: 14px;
-  display: flex; align-items: center; justify-content: center;
+  display: flex; 
+  align-items: center; 
+  justify-content: center;
   font-size: 28px;
   flex-shrink: 0;
 }
+
 .info-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 10px;
-  margin-bottom: 20px;
+  margin-bottom: 24px;
 }
+
 .info-item {
   background: var(--surface2);
   border: 1px solid var(--border);
   border-radius: 10px;
   padding: 12px 14px;
 }
-.info-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 4px; }
-.info-value { font-size: 14px; font-weight: 600; }
+
+.info-label { 
+  font-size: 11px; 
+  color: var(--muted); 
+  text-transform: uppercase; 
+  letter-spacing: .08em; 
+  margin-bottom: 4px; 
+}
+
+.info-value { 
+  font-size: 14px; 
+  font-weight: 600; 
+}
+
 .wo-mini {
   background: var(--surface2);
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 10px 14px;
-  margin-bottom: 6px;
+  margin-bottom: 8px;
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 10px;
   font-size: 13px;
 }
+
 #detail-map {
   height: 280px;
   width: 100%;
@@ -100,12 +120,14 @@ $typeLabel = ucwords(str_replace('_', ' ', $infra['type']));
   overflow: hidden;
   border: 1px solid var(--border);
 }
+
 .tab-bar {
   display: flex;
   gap: 4px;
   border-bottom: 1px solid var(--border);
   margin-bottom: 16px;
 }
+
 .tab-btn {
   padding: 8px 16px;
   font-size: 13px;
@@ -119,29 +141,73 @@ $typeLabel = ucwords(str_replace('_', ' ', $infra['type']));
   transition: all 0.15s;
   margin-bottom: -1px;
 }
+
 .tab-btn.active {
   color: var(--accent);
   border-bottom-color: var(--accent);
 }
+
 .tab-pane { display: none; }
 .tab-pane.active { display: block; }
+
+/* Improved header responsiveness */
+@media (max-width: 992px) {
+  .detail-header {
+    gap: 12px;
+  }
+}
+
+@media (max-width: 768px) {
+  .detail-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .detail-header > div[style*="margin-left:auto"] {
+    margin-left: 0 !important;
+    width: 100%;
+    justify-content: flex-start;
+  }
+}
 </style>
 
 <main class="main">
 
 <!-- Header -->
 <div class="detail-header">
-  <a href="infrastructure-list.php" class="btn-secondary" style="font-size:13px;text-decoration:none;padding:7px 14px;border-radius:8px;border:1px solid var(--border);color:var(--text)">← All Infrastructure</a>
+  <a href="infrastructure-list.php" class="btn-secondary" 
+     style="font-size:13px;text-decoration:none;padding:7px 14px;border-radius:8px;border:1px solid var(--border);color:var(--text)">
+    ← All Infrastructure
+  </a>
+  
   <div class="detail-icon"><?= $emoji ?></div>
-  <div>
-    <h1 style="font-size:22px;font-weight:700;line-height:1.2"><?= htmlspecialchars($infra['name'] ?: $typeLabel) ?></h1>
-    <div style="font-size:13px;color:var(--text2);margin-top:3px"><?= $typeLabel ?></div>
+  
+  <div style="flex: 1; min-width: 240px;">
+    <h1 style="font-size:22px;font-weight:700;line-height:1.2;margin:0">
+      <?= htmlspecialchars($infra['name'] ?: $typeLabel) ?>
+    </h1>
+    <div style="font-size:13px;color:var(--text2);margin-top:3px">
+      <?= $typeLabel ?>
+    </div>
   </div>
-  <span class="badge badge-<?= htmlspecialchars($infra['status']) ?>" style="font-size:12px;padding:4px 10px"><?= ucfirst($infra['status']) ?></span>
+
+  <span class="badge badge-<?= htmlspecialchars($infra['status']) ?>" 
+        style="font-size:12px;padding:4px 10px;white-space:nowrap">
+    <?= ucfirst($infra['status']) ?>
+  </span>
+
   <?php if (in_array($_SESSION['role'], ['Admin', 'Staff'])): ?>
-  <div style="margin-left:auto;display:flex;gap:8px">
-    <a href="infrastructure-add.php?edit=<?= $id ?>" class="btn-secondary" style="font-size:13px;text-decoration:none;padding:8px 14px;border-radius:8px">✏️ Edit</a>
-    <button onclick="openModal('mAddHistory')" class="btn-primary" style="font-size:13px">+ Add Work Order</button>
+  <div style="margin-left:auto; display:flex; gap:8px; flex-shrink:0;">
+    <a href="infrastructure-add.php?edit=<?= $id ?>" 
+       class="btn-secondary" 
+       style="font-size:13px;text-decoration:none;padding:8px 14px;border-radius:8px">
+      ✏️ Edit
+    </a>
+    <button onclick="openModal('mAddHistory')" 
+            class="btn-primary" 
+            style="font-size:13px; white-space:nowrap">
+      + Add Work Order
+    </button>
   </div>
   <?php endif; ?>
 </div>
@@ -170,11 +236,13 @@ $typeLabel = ucwords(str_replace('_', ' ', $infra['type']));
   </div>
   <div class="info-item" style="grid-column:1/-1">
     <div class="info-label">Address / Notes</div>
-    <div class="info-value" style="font-size:13px;font-weight:400"><?= htmlspecialchars($infra['address'] ?: $infra['notes'] ?: '—') ?></div>
+    <div class="info-value" style="font-size:13px;font-weight:400">
+      <?= htmlspecialchars($infra['address'] ?: $infra['notes'] ?: '—') ?>
+    </div>
   </div>
 </div>
 
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+<div style="display: grid; grid-template-columns: 1fr 380px; gap: 24px; align-items: start;">
 
   <!-- LEFT: Tabs -->
   <div>
@@ -187,7 +255,7 @@ $typeLabel = ucwords(str_replace('_', ' ', $infra['type']));
       <!-- Work Orders Tab -->
       <div class="tab-pane active" id="tab-history">
         <?php if (empty($history)): ?>
-          <p style="color:var(--muted);font-size:13px;text-align:center;padding:20px 0">
+          <p style="color:var(--muted);font-size:13px;text-align:center;padding:40px 0">
             No related work orders found.
           </p>
         <?php else: ?>
@@ -225,13 +293,13 @@ $typeLabel = ucwords(str_replace('_', ' ', $infra['type']));
       <!-- Details Tab -->
       <div class="tab-pane" id="tab-workorders">
         <?php if (empty($workOrders)): ?>
-          <p style="color:var(--muted);font-size:13px;text-align:center;padding:20px 0">
+          <p style="color:var(--muted);font-size:13px;text-align:center;padding:40px 0">
             No related work orders found.
           </p>
         <?php else: ?>
           <?php foreach ($workOrders as $wo): ?>
           <div class="wo-mini">
-            <div>
+            <div style="flex:1">
               <div style="font-weight:600"><?= htmlspecialchars($wo['title']) ?></div>
               <div style="font-size:11px;color:var(--muted)">
                 <?= htmlspecialchars($wo['type']) ?> · <?= htmlspecialchars($wo['assigned_name'] ?? '—') ?>
@@ -326,7 +394,7 @@ $typeLabel = ucwords(str_replace('_', ' ', $infra['type']));
 <?php endif; ?>
 
 <script>
-// ── Tab switching ─────────────────────────────────────────────
+// Tab switching
 function showTab(id, btn) {
   document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -334,23 +402,30 @@ function showTab(id, btn) {
   btn.classList.add('active');
 }
 
-// ── Mini map ──────────────────────────────────────────────────
+// Mini map
 <?php if ($infra['latitude'] && $infra['longitude']): ?>
 (function () {
-  const lat  = <?= (float)$infra['latitude'] ?>;
-  const lng  = <?= (float)$infra['longitude'] ?>;
-  const m    = L.map('detail-map', {
-    center: [lat, lng], zoom: 16,
+  const lat = <?= (float)$infra['latitude'] ?>;
+  const lng = <?= (float)$infra['longitude'] ?>;
+  
+  const m = L.map('detail-map', {
+    center: [lat, lng],
+    zoom: 16,
     zoomControl: true,
     attributionControl: false,
   });
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 20 }).addTo(m);
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { 
+    maxZoom: 20 
+  }).addTo(m);
+
   const icon = L.divIcon({
     className: '',
     html: '<div style="font-size:28px;filter:drop-shadow(0 3px 5px rgba(0,0,0,.6));"><?= $emoji ?></div>',
-    iconSize:   [28, 28],
+    iconSize: [28, 28],
     iconAnchor: [14, 28],
   });
+
   L.marker([lat, lng], { icon })
    .addTo(m)
    .bindPopup('<?= addslashes(htmlspecialchars($infra['name'] ?: $typeLabel)) ?>')
@@ -358,10 +433,13 @@ function showTab(id, btn) {
 })();
 <?php endif; ?>
 
-// ── Submit work order ─────────────────────────────────────────
+// Submit work order
 async function submitWorkOrder() {
   const title = document.getElementById('woTitle').value.trim();
-  if (!title) { showToast('Title is required', 'error'); return; }
+  if (!title) {
+    showToast('Title is required', 'error');
+    return;
+  }
 
   const r = await apiPost('maintenance.php', {
     action:         'save_work_order',
@@ -376,7 +454,7 @@ async function submitWorkOrder() {
   });
 
   if (r.success) {
-    showToast('Work order created', 'success');
+    showToast('Work order created successfully', 'success');
     closeModal('mAddHistory');
     setTimeout(() => window.location.reload(), 800);
   } else {

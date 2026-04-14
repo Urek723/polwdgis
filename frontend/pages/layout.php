@@ -650,6 +650,13 @@ tbody td:first-child { color: var(--text); }
     </svg>
     Infrastructure
 </a>
+<a href="pipelines.php" class="nav-item <?= $currentPage==='pipelines'?'active':'' ?>">
+    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+        <polyline points="9 22 9 12 15 12 15 22"/>
+    </svg>
+    Pipelines
+</a>
     </div>
     
     <div class="nav-section">

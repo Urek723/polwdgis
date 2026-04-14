@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Apr 14, 2026 at 06:46 AM
+-- Generation Time: Apr 14, 2026 at 11:06 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -406,17 +406,88 @@ CREATE TABLE `parcels` (
 CREATE TABLE `pipelines` (
   `id` int(10) UNSIGNED NOT NULL,
   `name` varchar(150) DEFAULT NULL,
+  `pipeline_type` enum('Transmission','Distribution','Service Line') NOT NULL DEFAULT 'Distribution',
   `material` enum('PVC','HDPE','Steel','GI','GIP','PE','SSP','CLCC Steel','PVC-O','UPBC','other') NOT NULL,
   `diameter_mm` int(11) DEFAULT NULL,
+  `pressure_class` enum('Low','Medium','High','Very High') DEFAULT 'Medium',
+  `length_m` decimal(10,2) DEFAULT NULL,
   `status` enum('active','inactive','rehabilitation','new') NOT NULL DEFAULT 'active',
   `installation_date` date DEFAULT NULL,
+  `installation_year` year(4) DEFAULT NULL,
+  `last_inspection_date` date DEFAULT NULL,
+  `condition_rating` enum('Excellent','Good','Fair','Poor','Critical') DEFAULT 'Good',
   `path_geojson` longtext DEFAULT NULL COMMENT 'GeoJSON LineString',
   `barangay` varchar(100) DEFAULT NULL,
   `notes` text DEFAULT NULL,
   `created_by` int(10) UNSIGNED DEFAULT NULL,
   `created_at` datetime NOT NULL DEFAULT current_timestamp(),
-  `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+  `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `flow_rate_lps` decimal(8,2) DEFAULT NULL COMMENT 'Litres per second design flow rate',
+  `operating_pressure_bar` decimal(6,2) DEFAULT NULL,
+  `max_pressure_bar` decimal(6,2) DEFAULT NULL,
+  `coating` varchar(100) DEFAULT NULL COMMENT 'Pipe coating/lining type',
+  `joint_type` varchar(100) DEFAULT NULL,
+  `zone_id` int(10) UNSIGNED DEFAULT NULL COMMENT 'Distribution zone',
+  `is_flagged` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'Flagged for inspection/maintenance',
+  `flag_reason` text DEFAULT NULL,
+  `status_change_count` smallint(5) UNSIGNED NOT NULL DEFAULT 0 COMMENT 'Auto-tracked status change count'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Triggers `pipelines`
+--
+DELIMITER $$
+CREATE TRIGGER `trg_pipeline_before_update` BEFORE UPDATE ON `pipelines` FOR EACH ROW BEGIN
+  -- Log status changes
+  IF OLD.status != NEW.status THEN
+    INSERT INTO pipeline_history
+      (pipeline_id, change_type, field_changed, old_value, new_value, reason)
+    VALUES
+      (OLD.id, 'status_change', 'status', OLD.status, NEW.status, 'Trigger-logged');
+    SET NEW.status_change_count = OLD.status_change_count + 1;
+  END IF;
+
+  -- Log material changes
+  IF OLD.material != NEW.material THEN
+    INSERT INTO pipeline_history
+      (pipeline_id, change_type, field_changed, old_value, new_value, reason)
+    VALUES
+      (OLD.id, 'material_change', 'material', OLD.material, NEW.material, 'Trigger-logged');
+  END IF;
+
+  -- Log diameter changes
+  IF OLD.diameter_mm != NEW.diameter_mm THEN
+    INSERT INTO pipeline_history
+      (pipeline_id, change_type, field_changed, old_value, new_value, reason)
+    VALUES
+      (OLD.id, 'diameter_change', 'diameter_mm',
+       CAST(OLD.diameter_mm AS CHAR), CAST(NEW.diameter_mm AS CHAR), 'Trigger-logged');
+  END IF;
+
+  -- Log condition rating changes
+  IF (OLD.condition_rating IS NULL AND NEW.condition_rating IS NOT NULL)
+     OR (OLD.condition_rating != NEW.condition_rating) THEN
+    INSERT INTO pipeline_history
+      (pipeline_id, change_type, field_changed, old_value, new_value, reason)
+    VALUES
+      (OLD.id, 'other', 'condition_rating',
+       COALESCE(OLD.condition_rating, 'NULL'),
+       COALESCE(NEW.condition_rating, 'NULL'), 'Trigger-logged');
+  END IF;
+
+  -- Log pressure class changes
+  IF (OLD.pressure_class IS NULL AND NEW.pressure_class IS NOT NULL)
+     OR OLD.pressure_class != NEW.pressure_class THEN
+    INSERT INTO pipeline_history
+      (pipeline_id, change_type, field_changed, old_value, new_value, reason)
+    VALUES
+      (OLD.id, 'other', 'pressure_class',
+       COALESCE(OLD.pressure_class,'NULL'),
+       COALESCE(NEW.pressure_class,'NULL'), 'Trigger-logged');
+  END IF;
+END
+$$
+DELIMITER ;
 
 -- --------------------------------------------------------
 
@@ -432,7 +503,68 @@ CREATE TABLE `pipeline_history` (
   `old_value` text DEFAULT NULL,
   `new_value` text DEFAULT NULL,
   `reason` text DEFAULT NULL,
-  `changed_at` datetime NOT NULL DEFAULT current_timestamp()
+  `changed_at` datetime NOT NULL DEFAULT current_timestamp(),
+  `field_changed` varchar(100) DEFAULT NULL COMMENT 'Which specific field was changed',
+  `session_id` varchar(100) DEFAULT NULL COMMENT 'Session/transaction grouping',
+  `ip_address` varchar(45) DEFAULT NULL,
+  `metadata` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL COMMENT 'Additional context as JSON' CHECK (json_valid(`metadata`))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `pipeline_inspection_checklist`
+--
+
+CREATE TABLE `pipeline_inspection_checklist` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `pipeline_id` int(10) UNSIGNED NOT NULL,
+  `inspected_at` datetime NOT NULL DEFAULT current_timestamp(),
+  `inspector_id` int(10) UNSIGNED DEFAULT NULL,
+  `no_visible_leaks` tinyint(1) DEFAULT 0,
+  `corrosion_observed` tinyint(1) DEFAULT 0,
+  `joint_integrity_ok` tinyint(1) DEFAULT 0,
+  `pressure_within_range` tinyint(1) DEFAULT 0,
+  `valve_accessible` tinyint(1) DEFAULT 0,
+  `cathodic_protection` tinyint(1) DEFAULT 0,
+  `remarks` text DEFAULT NULL,
+  `overall_rating` enum('Excellent','Good','Fair','Poor','Critical') DEFAULT 'Good'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `pipeline_maintenance_events`
+--
+
+CREATE TABLE `pipeline_maintenance_events` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `pipeline_id` int(10) UNSIGNED NOT NULL,
+  `event_type` enum('Inspection','Repair','Replacement','Cleaning','Pressure Test','Leak Detection','Valve Operation','Other') NOT NULL,
+  `event_date` date NOT NULL,
+  `description` text DEFAULT NULL,
+  `cost_php` decimal(12,2) DEFAULT NULL,
+  `work_order_id` int(10) UNSIGNED DEFAULT NULL,
+  `findings` text DEFAULT NULL,
+  `performed_by` int(10) UNSIGNED DEFAULT NULL COMMENT 'users.id',
+  `next_due_date` date DEFAULT NULL,
+  `created_at` datetime NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `pipeline_zones`
+--
+
+CREATE TABLE `pipeline_zones` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `zone_code` varchar(20) NOT NULL,
+  `zone_name` varchar(150) NOT NULL,
+  `description` text DEFAULT NULL,
+  `color` varchar(7) DEFAULT '#0057ff' COMMENT 'Hex color for map display',
+  `barangays` text DEFAULT NULL COMMENT 'Comma-separated barangay list',
+  `created_at` datetime NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -454,6 +586,31 @@ CREATE TABLE `users` (
   `created_at` datetime NOT NULL DEFAULT current_timestamp(),
   `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Stand-in structure for view `v_pipeline_risk_assessment`
+-- (See below for the actual view)
+--
+CREATE TABLE `v_pipeline_risk_assessment` (
+`id` int(10) unsigned
+,`name` varchar(150)
+,`pipeline_type` enum('Transmission','Distribution','Service Line')
+,`material` enum('PVC','HDPE','Steel','GI','GIP','PE','SSP','CLCC Steel','PVC-O','UPBC','other')
+,`diameter_mm` int(11)
+,`status` enum('active','inactive','rehabilitation','new')
+,`condition_rating` enum('Excellent','Good','Fair','Poor','Critical')
+,`is_flagged` tinyint(1)
+,`barangay` varchar(100)
+,`installation_date` date
+,`age_years` int(5)
+,`status_change_count` smallint(5) unsigned
+,`total_history_events` bigint(21)
+,`status_changes_6mo` decimal(22,0)
+,`last_change_date` datetime
+,`risk_score` int(9) unsigned
+);
 
 -- --------------------------------------------------------
 
@@ -549,6 +706,15 @@ CREATE TABLE `work_order_updates` (
   `updated_by` int(10) UNSIGNED DEFAULT NULL,
   `updated_at` datetime NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Structure for view `v_pipeline_risk_assessment`
+--
+DROP TABLE IF EXISTS `v_pipeline_risk_assessment`;
+
+CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `v_pipeline_risk_assessment`  AS SELECT `p`.`id` AS `id`, `p`.`name` AS `name`, `p`.`pipeline_type` AS `pipeline_type`, `p`.`material` AS `material`, `p`.`diameter_mm` AS `diameter_mm`, `p`.`status` AS `status`, `p`.`condition_rating` AS `condition_rating`, `p`.`is_flagged` AS `is_flagged`, `p`.`barangay` AS `barangay`, `p`.`installation_date` AS `installation_date`, year(current_timestamp()) - year(`p`.`installation_date`) AS `age_years`, `p`.`status_change_count` AS `status_change_count`, count(`h`.`id`) AS `total_history_events`, sum(case when `h`.`change_type` = 'status_change' and `h`.`changed_at` >= current_timestamp() - interval 6 month then 1 else 0 end) AS `status_changes_6mo`, max(`h`.`changed_at`) AS `last_change_date`, coalesce(year(current_timestamp()) - year(`p`.`installation_date`),0) * 2 + `p`.`status_change_count` * 5 + CASE `p`.`condition_rating` WHEN 'Critical' THEN 50 WHEN 'Poor' THEN 30 WHEN 'Fair' THEN 15 WHEN 'Good' THEN 5 ELSE 0 END+ CASE `p`.`material` WHEN 'Steel' THEN 10 WHEN 'GI' THEN 8 WHEN 'HDPE' THEN 2 ELSE 5 END AS `risk_score` FROM (`pipelines` `p` left join `pipeline_history` `h` on(`h`.`pipeline_id` = `p`.`id`)) WHERE `p`.`installation_date` is not null GROUP BY `p`.`id` ;
 
 --
 -- Indexes for dumped tables
@@ -683,14 +849,40 @@ ALTER TABLE `parcels`
 -- Indexes for table `pipelines`
 --
 ALTER TABLE `pipelines`
-  ADD PRIMARY KEY (`id`);
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_pipelines_type_status` (`pipeline_type`,`status`),
+  ADD KEY `idx_pipelines_material` (`material`),
+  ADD KEY `idx_pipelines_flagged` (`is_flagged`);
 
 --
 -- Indexes for table `pipeline_history`
 --
 ALTER TABLE `pipeline_history`
   ADD PRIMARY KEY (`id`),
+  ADD KEY `pipeline_id` (`pipeline_id`),
+  ADD KEY `idx_ph_field_changed` (`field_changed`,`changed_at`);
+
+--
+-- Indexes for table `pipeline_inspection_checklist`
+--
+ALTER TABLE `pipeline_inspection_checklist`
+  ADD PRIMARY KEY (`id`),
   ADD KEY `pipeline_id` (`pipeline_id`);
+
+--
+-- Indexes for table `pipeline_maintenance_events`
+--
+ALTER TABLE `pipeline_maintenance_events`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `pipeline_id` (`pipeline_id`),
+  ADD KEY `event_date` (`event_date`);
+
+--
+-- Indexes for table `pipeline_zones`
+--
+ALTER TABLE `pipeline_zones`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `zone_code` (`zone_code`);
 
 --
 -- Indexes for table `users`
@@ -864,6 +1056,24 @@ ALTER TABLE `pipeline_history`
   MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
+-- AUTO_INCREMENT for table `pipeline_inspection_checklist`
+--
+ALTER TABLE `pipeline_inspection_checklist`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `pipeline_maintenance_events`
+--
+ALTER TABLE `pipeline_maintenance_events`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `pipeline_zones`
+--
+ALTER TABLE `pipeline_zones`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
@@ -944,6 +1154,18 @@ ALTER TABLE `inventory_transactions`
 --
 ALTER TABLE `pipeline_history`
   ADD CONSTRAINT `pipeline_history_ibfk_1` FOREIGN KEY (`pipeline_id`) REFERENCES `pipelines` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `pipeline_inspection_checklist`
+--
+ALTER TABLE `pipeline_inspection_checklist`
+  ADD CONSTRAINT `pic_pipeline_fk` FOREIGN KEY (`pipeline_id`) REFERENCES `pipelines` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `pipeline_maintenance_events`
+--
+ALTER TABLE `pipeline_maintenance_events`
+  ADD CONSTRAINT `pme_pipeline_fk` FOREIGN KEY (`pipeline_id`) REFERENCES `pipelines` (`id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `water_meters`
