@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Apr 14, 2026 at 02:59 PM
+-- Generation Time: Apr 14, 2026 at 03:00 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -20,6 +20,121 @@ SET time_zone = "+00:00";
 --
 -- Database: `polwdgis`
 --
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `activity_logs`
+--
+
+CREATE TABLE `activity_logs` (
+  `id` bigint(20) UNSIGNED NOT NULL,
+  `user_id` int(10) UNSIGNED DEFAULT NULL,
+  `action` varchar(100) NOT NULL,
+  `table_name` varchar(100) DEFAULT NULL,
+  `record_id` varchar(50) DEFAULT NULL,
+  `details` longtext DEFAULT NULL,
+  `ip_address` varchar(45) DEFAULT NULL,
+  `created_at` datetime NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `activity_logs`
+--
+
+INSERT INTO `activity_logs` (`id`, `user_id`, `action`, `table_name`, `record_id`, `details`, `ip_address`, `created_at`) VALUES
+(1, 3, 'logout', 'users', '3', 'User logged out', '::1', '2026-04-14 16:56:00'),
+(2, 3, 'login', 'users', '3', 'User logged in', '::1', '2026-04-14 16:56:06'),
+(3, 3, 'csv_import_gis', 'consumers', '1', 'GIS import \'WATERMETER1.csv\': 62 imported, 0 skipped of 62 total', '::1', '2026-04-14 16:56:24'),
+(4, 3, 'csv_import_gis', 'consumers', '2', 'GIS import \'WATERMETER2.csv\': 140 imported, 0 skipped of 140 total', '::1', '2026-04-14 16:56:32'),
+(5, 3, 'save_work_order', 'work_orders', '16', 'Pressure Test', '::1', '2026-04-14 17:20:18'),
+(6, 3, 'login', 'users', '3', 'User logged in', '::1', '2026-04-14 17:24:42'),
+(7, 3, 'logout', 'users', '3', 'User logged out', '::1', '2026-04-14 17:47:31'),
+(8, 3, 'login', 'users', '3', 'User logged in', '::1', '2026-04-14 20:53:53');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `chatbot_messages`
+--
+
+CREATE TABLE `chatbot_messages` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `session_id` int(10) UNSIGNED NOT NULL,
+  `sender` enum('user','bot') NOT NULL,
+  `message` text NOT NULL,
+  `created_at` datetime NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `chatbot_messages`
+--
+
+INSERT INTO `chatbot_messages` (`id`, `session_id`, `sender`, `message`, `created_at`) VALUES
+(1, 1, 'user', 'How to check my bill?', '2026-04-14 17:11:31'),
+(2, 1, 'bot', 'You can view it in the portal billing section.', '2026-04-14 17:11:31'),
+(3, 2, 'user', 'My water is low pressure', '2026-04-14 17:11:31'),
+(4, 2, 'bot', 'We will dispatch a technician.', '2026-04-14 17:11:31'),
+(5, 3, 'user', 'New connection requirements?', '2026-04-14 17:11:31'),
+(6, 3, 'bot', 'Submit ID and application form.', '2026-04-14 17:11:31');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `chatbot_sessions`
+--
+
+CREATE TABLE `chatbot_sessions` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `session_token` varchar(100) DEFAULT NULL,
+  `consumer_id` int(10) UNSIGNED DEFAULT NULL,
+  `started_at` datetime NOT NULL DEFAULT current_timestamp(),
+  `ended_at` datetime DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `chatbot_sessions`
+--
+
+INSERT INTO `chatbot_sessions` (`id`, `session_token`, `consumer_id`, `started_at`, `ended_at`) VALUES
+(1, 'S-1001', 203, '2026-04-14 17:11:31', NULL),
+(2, 'S-1002', 204, '2026-04-14 17:11:31', NULL),
+(3, 'S-1003', 205, '2026-04-14 17:11:31', NULL);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `communication_history`
+--
+
+CREATE TABLE `communication_history` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `consumer_id` int(10) UNSIGNED DEFAULT NULL,
+  `user_id` int(10) UNSIGNED DEFAULT NULL,
+  `channel` enum('System','Email','SMS','Phone','In-Person','Portal') DEFAULT 'System',
+  `direction` enum('Inbound','Outbound') DEFAULT 'Outbound',
+  `subject` varchar(200) DEFAULT NULL,
+  `message` text DEFAULT NULL,
+  `is_read` tinyint(1) DEFAULT 0,
+  `related_request_id` int(10) UNSIGNED DEFAULT NULL,
+  `created_at` datetime NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `communication_history`
+--
+
+INSERT INTO `communication_history` (`id`, `consumer_id`, `user_id`, `channel`, `direction`, `subject`, `message`, `is_read`, `related_request_id`, `created_at`) VALUES
+(1, 203, 2, 'Portal', 'Outbound', 'Follow-up', 'Technician scheduled visit', 0, NULL, '2026-04-14 17:11:31'),
+(2, 204, 3, 'SMS', 'Outbound', 'Billing Update', 'Your bill has been adjusted', 0, NULL, '2026-04-14 17:11:31'),
+(3, 205, 2, 'Email', 'Outbound', 'Service Update', 'New connection request received', 0, NULL, '2026-04-14 17:11:31'),
+(4, 206, 3, 'Phone', 'Outbound', 'Repair Update', 'Issue resolved', 0, NULL, '2026-04-14 17:11:31'),
+(5, 207, 2, 'Portal', 'Inbound', 'Request', 'Status inquiry', 0, NULL, '2026-04-14 17:11:31'),
+(6, 208, 3, 'SMS', 'Outbound', 'Info', 'General advisory', 0, NULL, '2026-04-14 17:11:31'),
+(7, 209, 2, 'Portal', 'Outbound', 'Repair', 'Inspection scheduled', 0, NULL, '2026-04-14 17:11:31'),
+(8, 210, 3, 'Email', 'Outbound', 'Update', 'Subdivision expansion ongoing', 0, NULL, '2026-04-14 17:11:31'),
+(9, 211, 2, 'Phone', 'Inbound', 'Complaint', 'Meter reading concern', 0, NULL, '2026-04-14 17:11:31'),
+(10, 212, 3, 'Portal', 'Outbound', 'Resolution', 'Valve repaired', 0, NULL, '2026-04-14 17:11:31');
 
 -- --------------------------------------------------------
 
@@ -286,9 +401,955 @@ INSERT INTO `consumers` (`id`, `account_id`, `account_no`, `name`, `type`, `stat
 (221, 'ACC-2026-0019', '0019', 'Juanita Cruz', 'Residential', 'Active', 'Purok 8, Poblacion', 'Poblacion', 'Polomolok', 'Z2', 'B2', 'SC-1019', '09173335555', NULL, '[juanita@gmail.com](mailto:juanita@gmail.com)', 2, 2, 4, 0, 'Zenner', 'MTR-10019', 516980.0000, 6882850.0000, NULL, 6.22290000, 125.06490000, NULL, '2026-04-14 17:11:30', '2026-04-14 17:11:30', '2022-08-08'),
 (222, 'ACC-2026-0020', '0020', 'Polomolok Public Market', 'Commercial', 'Active', 'Market Complex', 'Poblacion', 'Polomolok', 'Z2', 'B1', 'SC-1020', '083-999888', NULL, '[market@polomolok.gov.ph](mailto:market@polomolok.gov.ph)', 25, 20, 45, 0, 'Elster', 'MTR-10020', 516880.0000, 6882700.0000, NULL, 6.22250000, 125.06460000, NULL, '2026-04-14 17:11:30', '2026-04-14 17:11:30', '2018-02-14');
 
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `consumers_auth`
+--
+
+CREATE TABLE `consumers_auth` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `name` varchar(150) NOT NULL,
+  `account_number` varchar(50) NOT NULL,
+  `contact_number` varchar(30) NOT NULL,
+  `password_hash` varchar(255) NOT NULL,
+  `is_active` tinyint(1) DEFAULT 1,
+  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `consumers_auth`
+--
+
+INSERT INTO `consumers_auth` (`id`, `name`, `account_number`, `contact_number`, `password_hash`, `is_active`, `created_at`, `updated_at`) VALUES
+(1, 'Juan Dela Cruz', '12344', '09514619889', '$2y$10$VUVl8l/DJidumpUHPKqya.TtQqFw563UfsCsYj1wUTzat8P8n/3Yq', 1, '2026-04-14 17:23:36', '2026-04-14 17:23:36');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `consumer_requests`
+--
+
+CREATE TABLE `consumer_requests` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `consumer_id` int(10) UNSIGNED NOT NULL,
+  `consumer_auth_id` int(10) UNSIGNED DEFAULT NULL,
+  `request_type` enum('New Connection','Disconnection','Reconnection','Repair','Billing Dispute','Other') NOT NULL,
+  `subject` varchar(200) DEFAULT NULL,
+  `details` text DEFAULT NULL,
+  `latitude` decimal(11,8) DEFAULT NULL,
+  `longitude` decimal(11,8) DEFAULT NULL,
+  `location_text` varchar(255) DEFAULT NULL,
+  `status` enum('Submitted','Under Review','In Progress','Resolved','Closed') DEFAULT 'Submitted',
+  `priority` enum('Low','Normal','High') DEFAULT 'Normal',
+  `assigned_to` int(10) UNSIGNED DEFAULT NULL,
+  `resolved_at` datetime DEFAULT NULL,
+  `resolution_notes` text DEFAULT NULL,
+  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `consumer_requests`
+--
+
+INSERT INTO `consumer_requests` (`id`, `consumer_id`, `consumer_auth_id`, `request_type`, `subject`, `details`, `latitude`, `longitude`, `location_text`, `status`, `priority`, `assigned_to`, `resolved_at`, `resolution_notes`, `created_at`, `updated_at`) VALUES
+(1, 203, NULL, 'Repair', 'Low pressure', 'Water pressure too low', 6.22154000, 125.06321000, NULL, 'In Progress', 'High', 2, NULL, NULL, '2026-04-14 17:11:31', '2026-04-14 17:11:31'),
+(2, 204, NULL, 'Billing Dispute', 'Overbilling', 'Incorrect bill amount', 6.22211000, 125.06411000, NULL, 'Under Review', 'Normal', 3, NULL, NULL, '2026-04-14 17:11:31', '2026-04-14 17:11:31'),
+(3, 205, NULL, 'New Connection', 'New line request', 'Request new service', 6.22300000, 125.06500000, NULL, 'Submitted', 'High', 2, NULL, NULL, '2026-04-14 17:11:31', '2026-04-14 17:11:31'),
+(4, 206, NULL, 'Repair', 'Leak report', 'Leak near house', 6.22354000, 125.06612000, NULL, 'Resolved', 'High', 3, NULL, NULL, '2026-04-14 17:11:31', '2026-04-14 17:11:31'),
+(5, 207, NULL, 'Reconnection', 'Reconnect service', 'Request reconnection', 6.22412000, 125.06700000, NULL, 'Submitted', 'Normal', 2, NULL, NULL, '2026-04-14 17:11:31', '2026-04-14 17:11:31'),
+(6, 208, NULL, 'Other', 'Inquiry', 'General inquiry', 6.22500000, 125.06780000, NULL, 'Closed', 'Low', 3, NULL, NULL, '2026-04-14 17:11:31', '2026-04-14 17:11:31'),
+(7, 209, NULL, 'Repair', 'Pipe issue', 'Suspected burst pipe', 6.22190000, 125.06350000, NULL, 'In Progress', 'High', 2, NULL, NULL, '2026-04-14 17:11:31', '2026-04-14 17:11:31'),
+(8, 210, NULL, 'New Connection', 'Subdivision expansion', 'New houses connection', 6.22280000, 125.06450000, NULL, 'Submitted', 'High', 3, NULL, NULL, '2026-04-14 17:11:31', '2026-04-14 17:11:31'),
+(9, 211, NULL, 'Billing Dispute', 'Meter reading issue', 'Wrong reading', 6.22230000, 125.06400000, NULL, 'Under Review', 'Normal', 2, NULL, NULL, '2026-04-14 17:11:31', '2026-04-14 17:11:31'),
+(10, 212, NULL, 'Repair', 'Valve issue', 'Valve not working', 6.22260000, 125.06480000, NULL, 'Resolved', 'High', 3, NULL, NULL, '2026-04-14 17:11:31', '2026-04-14 17:11:31');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `consumption_records`
+--
+
+CREATE TABLE `consumption_records` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `consumer_id` int(10) UNSIGNED NOT NULL,
+  `meter_id` int(10) UNSIGNED DEFAULT NULL,
+  `billing_month` date NOT NULL COMMENT 'YYYY-MM-01',
+  `reading_prev` decimal(10,2) DEFAULT 0.00,
+  `reading_curr` decimal(10,2) DEFAULT 0.00,
+  `consumption_m3` decimal(10,2) GENERATED ALWAYS AS (`reading_curr` - `reading_prev`) STORED,
+  `is_alert` tinyint(1) DEFAULT 0 COMMENT 'exceeding threshold',
+  `alert_threshold` decimal(10,2) DEFAULT NULL,
+  `recorded_by` int(10) UNSIGNED DEFAULT NULL,
+  `recorded_at` datetime NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `consumption_records`
+--
+
+INSERT INTO `consumption_records` (`id`, `consumer_id`, `meter_id`, `billing_month`, `reading_prev`, `reading_curr`, `is_alert`, `alert_threshold`, `recorded_by`, `recorded_at`) VALUES
+(1, 203, 1, '2026-01-01', 120.00, 145.00, 0, 50.00, 2, '2026-04-14 17:11:31'),
+(2, 203, 1, '2026-02-01', 145.00, 170.00, 0, 50.00, 2, '2026-04-14 17:11:31'),
+(3, 204, 2, '2026-01-01', 80.00, 110.00, 0, 50.00, 2, '2026-04-14 17:11:31'),
+(4, 204, 2, '2026-02-01', 110.00, 140.00, 0, 50.00, 2, '2026-04-14 17:11:31'),
+(5, 205, 3, '2026-01-01', 500.00, 540.00, 0, 100.00, 3, '2026-04-14 17:11:31'),
+(6, 205, 3, '2026-02-01', 540.00, 590.00, 0, 100.00, 3, '2026-04-14 17:11:31'),
+(7, 206, 4, '2026-01-01', 200.00, 230.00, 0, 60.00, 2, '2026-04-14 17:11:31'),
+(8, 206, 4, '2026-02-01', 230.00, 260.00, 0, 60.00, 2, '2026-04-14 17:11:31'),
+(9, 207, 5, '2026-01-01', 150.00, 175.00, 0, 50.00, 3, '2026-04-14 17:11:31'),
+(10, 207, 5, '2026-02-01', 175.00, 205.00, 0, 50.00, 3, '2026-04-14 17:11:31'),
+(11, 208, 6, '2026-01-01', 90.00, 120.00, 0, 50.00, 2, '2026-04-14 17:11:31'),
+(12, 208, 6, '2026-02-01', 120.00, 150.00, 0, 50.00, 2, '2026-04-14 17:11:31'),
+(13, 209, 7, '2026-01-01', 300.00, 340.00, 0, 80.00, 2, '2026-04-14 17:11:31'),
+(14, 209, 7, '2026-02-01', 340.00, 390.00, 0, 80.00, 2, '2026-04-14 17:11:31'),
+(15, 210, 8, '2026-01-01', 400.00, 450.00, 0, 100.00, 3, '2026-04-14 17:11:31'),
+(16, 210, 8, '2026-02-01', 450.00, 520.00, 0, 100.00, 3, '2026-04-14 17:11:31'),
+(17, 211, 9, '2026-01-01', 130.00, 160.00, 0, 50.00, 2, '2026-04-14 17:11:31'),
+(18, 211, 9, '2026-02-01', 160.00, 190.00, 0, 50.00, 2, '2026-04-14 17:11:31'),
+(19, 212, 10, '2026-01-01', 220.00, 260.00, 0, 70.00, 3, '2026-04-14 17:11:31'),
+(20, 212, 10, '2026-02-01', 260.00, 310.00, 0, 70.00, 3, '2026-04-14 17:11:31'),
+(21, 213, 11, '2026-01-01', 140.00, 170.00, 0, 50.00, 2, '2026-04-14 17:11:31'),
+(22, 213, 11, '2026-02-01', 170.00, 210.00, 0, 50.00, 2, '2026-04-14 17:11:31'),
+(23, 214, 12, '2026-01-01', 160.00, 200.00, 0, 60.00, 2, '2026-04-14 17:11:31'),
+(24, 214, 12, '2026-02-01', 200.00, 245.00, 0, 60.00, 2, '2026-04-14 17:11:31'),
+(25, 215, 13, '2026-01-01', 110.00, 140.00, 0, 50.00, 3, '2026-04-14 17:11:31'),
+(26, 215, 13, '2026-02-01', 140.00, 175.00, 0, 50.00, 3, '2026-04-14 17:11:31'),
+(27, 216, 14, '2026-01-01', 600.00, 650.00, 0, 120.00, 2, '2026-04-14 17:11:31'),
+(28, 216, 14, '2026-02-01', 650.00, 720.00, 0, 120.00, 2, '2026-04-14 17:11:31'),
+(29, 217, 15, '2026-01-01', 95.00, 120.00, 0, 50.00, 3, '2026-04-14 17:11:31'),
+(30, 217, 15, '2026-02-01', 120.00, 150.00, 0, 50.00, 3, '2026-04-14 17:11:31'),
+(31, 218, 16, '2026-01-01', 800.00, 860.00, 0, 150.00, 2, '2026-04-14 17:11:31'),
+(32, 218, 16, '2026-02-01', 860.00, 930.00, 0, 150.00, 2, '2026-04-14 17:11:31'),
+(33, 219, 17, '2026-01-01', 200.00, 240.00, 0, 70.00, 2, '2026-04-14 17:11:31'),
+(34, 219, 17, '2026-02-01', 240.00, 290.00, 0, 70.00, 2, '2026-04-14 17:11:31'),
+(35, 220, 18, '2026-01-01', 180.00, 220.00, 0, 60.00, 3, '2026-04-14 17:11:31'),
+(36, 220, 18, '2026-02-01', 220.00, 270.00, 0, 60.00, 3, '2026-04-14 17:11:31'),
+(37, 221, 19, '2026-01-01', 160.00, 190.00, 0, 50.00, 2, '2026-04-14 17:11:31'),
+(38, 221, 19, '2026-02-01', 190.00, 230.00, 0, 50.00, 2, '2026-04-14 17:11:31'),
+(39, 222, 20, '2026-01-01', 700.00, 760.00, 0, 140.00, 3, '2026-04-14 17:11:31'),
+(40, 222, 20, '2026-02-01', 760.00, 830.00, 0, 140.00, 3, '2026-04-14 17:11:31');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `csv_imports`
+--
+
+CREATE TABLE `csv_imports` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `filename` varchar(255) NOT NULL,
+  `table_target` varchar(100) DEFAULT NULL,
+  `total_rows` int(11) DEFAULT 0,
+  `imported_rows` int(11) DEFAULT 0,
+  `failed_rows` int(11) DEFAULT 0,
+  `status` enum('Pending','Processing','Completed','Failed') DEFAULT 'Pending',
+  `error_log` text DEFAULT NULL,
+  `uploaded_by` int(10) UNSIGNED DEFAULT NULL,
+  `uploaded_at` datetime NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `csv_imports`
+--
+
+INSERT INTO `csv_imports` (`id`, `filename`, `table_target`, `total_rows`, `imported_rows`, `failed_rows`, `status`, `error_log`, `uploaded_by`, `uploaded_at`) VALUES
+(1, 'WATERMETER1.csv', 'consumers', 62, 62, 0, 'Completed', '', 3, '2026-04-14 16:56:24'),
+(2, 'WATERMETER2.csv', 'consumers', 140, 140, 0, 'Completed', '', 3, '2026-04-14 16:56:31');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `deterioration_alerts`
+--
+
+CREATE TABLE `deterioration_alerts` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `pipeline_id` int(10) UNSIGNED DEFAULT NULL,
+  `infrastructure_id` int(10) UNSIGNED DEFAULT NULL,
+  `alert_type` varchar(100) DEFAULT NULL,
+  `severity` enum('Low','Medium','High','Critical') DEFAULT 'Medium',
+  `description` text DEFAULT NULL,
+  `installation_date` date DEFAULT NULL,
+  `age_years` int(11) DEFAULT NULL,
+  `is_resolved` tinyint(1) DEFAULT 0,
+  `resolved_by` int(10) UNSIGNED DEFAULT NULL,
+  `resolved_at` datetime DEFAULT NULL,
+  `created_at` datetime NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `deterioration_alerts`
+--
+
+INSERT INTO `deterioration_alerts` (`id`, `pipeline_id`, `infrastructure_id`, `alert_type`, `severity`, `description`, `installation_date`, `age_years`, `is_resolved`, `resolved_by`, `resolved_at`, `created_at`) VALUES
+(1, 5, NULL, 'Corrosion', 'High', 'Steel pipeline corrosion detected', '2010-11-20', 16, 0, NULL, NULL, '2026-04-14 17:11:31'),
+(2, 10, NULL, 'Pressure Risk', 'Critical', 'Frequent pressure failures', '2008-05-15', 18, 0, NULL, NULL, '2026-04-14 17:11:31'),
+(3, 3, NULL, 'Leak Risk', 'Medium', 'Aging GI pipeline section', '2012-09-12', 14, 0, NULL, NULL, '2026-04-14 17:11:31'),
+(4, 8, NULL, 'Structural Wear', 'Medium', 'Moderate deterioration observed', '2013-04-25', 13, 0, NULL, NULL, '2026-04-14 17:11:31'),
+(5, 2, NULL, 'Joint Weakness', 'Low', 'Minor joint wear detected', '2018-03-10', 8, 0, NULL, NULL, '2026-04-14 17:11:31');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `document_templates`
+--
+
+CREATE TABLE `document_templates` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `name` varchar(150) NOT NULL,
+  `type` varchar(100) DEFAULT NULL,
+  `template_content` longtext DEFAULT NULL COMMENT 'HTML template with {{placeholders}}',
+  `is_active` tinyint(1) DEFAULT 1,
+  `created_at` datetime NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `document_templates`
+--
+
+INSERT INTO `document_templates` (`id`, `name`, `type`, `template_content`, `is_active`, `created_at`) VALUES
+(1, 'Billing Statement', 'Billing', '<h1>Bill for {{consumer}}</h1>', 1, '2026-04-14 17:11:31'),
+(2, 'Work Order Report', 'Operations', '<h1>Work Order {{id}}</h1>', 1, '2026-04-14 17:11:31');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `emergency_incidents`
+--
+
+CREATE TABLE `emergency_incidents` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `type` enum('Pipeline Break','Pump Failure','Contamination','Flood','Other') NOT NULL,
+  `title` varchar(200) NOT NULL,
+  `description` text DEFAULT NULL,
+  `severity` enum('Low','Medium','High','Critical') DEFAULT 'High',
+  `status` enum('Open','Responding','Resolved') DEFAULT 'Open',
+  `latitude` decimal(11,8) DEFAULT NULL,
+  `longitude` decimal(11,8) DEFAULT NULL,
+  `location_text` text DEFAULT NULL,
+  `reported_by` int(10) UNSIGNED DEFAULT NULL,
+  `assigned_team` text DEFAULT NULL,
+  `response_notes` text DEFAULT NULL,
+  `resolved_at` datetime DEFAULT NULL,
+  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `emergency_incidents`
+--
+
+INSERT INTO `emergency_incidents` (`id`, `type`, `title`, `description`, `severity`, `status`, `latitude`, `longitude`, `location_text`, `reported_by`, `assigned_team`, `response_notes`, `resolved_at`, `created_at`, `updated_at`) VALUES
+(1, 'Pipeline Break', 'Mainline Burst', 'Major pipe burst near highway', 'Critical', 'Resolved', 6.22350000, 125.06610000, 'Koronadal Highway', 2, 'Response Team A', NULL, NULL, '2026-04-14 17:11:31', '2026-04-14 17:11:31'),
+(2, 'Pump Failure', 'Pump Station Failure', 'Main pump stopped', 'High', 'Responding', 6.22250000, 125.06450000, 'Main Station', 3, 'Mechanical Team', NULL, NULL, '2026-04-14 17:11:31', '2026-04-14 17:11:31'),
+(3, 'Contamination', 'Water Quality Issue', 'Suspicious discoloration', 'High', 'Open', 6.22400000, 125.06600000, 'Cannery Site', 2, 'QA Team', NULL, NULL, '2026-04-14 17:11:31', '2026-04-14 17:11:31'),
+(4, 'Flood', 'Service Area Flood', 'Flood affecting pipelines', 'Medium', 'Resolved', 6.22280000, 125.06480000, 'Poblacion', 3, 'Emergency Unit', NULL, NULL, '2026-04-14 17:11:31', '2026-04-14 17:11:31'),
+(5, 'Other', 'Low Pressure Area', 'Widespread low pressure', 'Medium', 'Open', 6.22320000, 125.06520000, 'Magsaysay', 2, 'Ops Team', NULL, NULL, '2026-04-14 17:11:31', '2026-04-14 17:11:31');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `generated_documents`
+--
+
+CREATE TABLE `generated_documents` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `template_id` int(10) UNSIGNED DEFAULT NULL,
+  `consumer_id` int(10) UNSIGNED DEFAULT NULL,
+  `title` varchar(200) DEFAULT NULL,
+  `content` longtext DEFAULT NULL,
+  `generated_by` int(10) UNSIGNED DEFAULT NULL,
+  `generated_at` datetime NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `generated_documents`
+--
+
+INSERT INTO `generated_documents` (`id`, `template_id`, `consumer_id`, `title`, `content`, `generated_by`, `generated_at`) VALUES
+(1, 1, 203, 'Bill Jan 2026', 'Sample bill content', 2, '2026-04-14 17:11:31'),
+(2, 1, 204, 'Bill Jan 2026', 'Sample bill content', 3, '2026-04-14 17:11:31'),
+(3, 2, NULL, 'WO Report 1001', 'Work order summary', 2, '2026-04-14 17:11:31');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `infrastructure`
+--
+
+CREATE TABLE `infrastructure` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `type` enum('pumping_station','reservoir','valve','hydrant','blowoff','meter_chamber','other') NOT NULL,
+  `name` varchar(150) DEFAULT NULL,
+  `latitude` decimal(11,8) DEFAULT NULL,
+  `longitude` decimal(11,8) DEFAULT NULL,
+  `address` text DEFAULT NULL,
+  `barangay` varchar(100) DEFAULT NULL,
+  `status` enum('active','inactive','maintenance') NOT NULL DEFAULT 'active',
+  `installation_date` date DEFAULT NULL,
+  `last_inspection` date DEFAULT NULL,
+  `notes` text DEFAULT NULL,
+  `created_by` int(10) UNSIGNED DEFAULT NULL,
+  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `infrastructure`
+--
+
+INSERT INTO `infrastructure` (`id`, `type`, `name`, `latitude`, `longitude`, `address`, `barangay`, `status`, `installation_date`, `last_inspection`, `notes`, `created_by`, `created_at`, `updated_at`) VALUES
+(1, 'pumping_station', 'Main Pump Station', 6.22250000, 125.06450000, NULL, 'Poblacion', 'active', '2015-06-01', '2025-12-01', NULL, 1, '2026-04-14 17:11:31', '2026-04-14 17:11:31'),
+(2, 'reservoir', 'Hilltop Reservoir', 6.22400000, 125.06600000, NULL, 'Cannery Site', 'active', '2014-05-10', '2025-11-20', NULL, 1, '2026-04-14 17:11:31', '2026-04-14 17:11:31'),
+(3, 'valve', 'Zone 1 Control Valve', 6.22180000, 125.06380000, NULL, 'Poblacion', 'active', '2018-01-01', '2025-10-10', NULL, 2, '2026-04-14 17:11:31', '2026-04-14 17:11:31'),
+(4, 'hydrant', 'Market Fire Hydrant', 6.22260000, 125.06490000, NULL, 'Poblacion', 'active', '2019-02-15', '2025-09-09', NULL, 2, '2026-04-14 17:11:31', '2026-04-14 17:11:31'),
+(5, 'blowoff', 'Drain Valve B1', 6.22330000, 125.06550000, NULL, 'Magsaysay', 'active', '2017-03-22', '2025-08-08', NULL, 1, '2026-04-14 17:11:31', '2026-04-14 17:11:31'),
+(6, 'meter_chamber', 'Cannery Chamber 1', 6.22450000, 125.06680000, NULL, 'Cannery Site', 'active', '2020-06-30', '2025-07-07', NULL, 3, '2026-04-14 17:11:31', '2026-04-14 17:11:31'),
+(7, 'valve', 'Polo Isolation Valve', 6.22520000, 125.06790000, NULL, 'Polo', 'active', '2016-09-11', '2025-06-06', NULL, 3, '2026-04-14 17:11:31', '2026-04-14 17:11:31'),
+(8, 'reservoir', 'Magsaysay Tank', 6.22290000, 125.06420000, NULL, 'Magsaysay', 'maintenance', '2012-12-12', '2025-05-05', NULL, 2, '2026-04-14 17:11:31', '2026-04-14 17:11:31'),
+(9, 'pumping_station', 'Backup Pump Station', 6.22380000, 125.06590000, NULL, 'Poblacion', 'active', '2018-08-08', '2025-04-04', NULL, 1, '2026-04-14 17:11:31', '2026-04-14 17:11:31'),
+(10, 'hydrant', 'Industrial Hydrant', 6.22360000, 125.06630000, NULL, 'Poblacion', 'active', '2021-01-01', '2025-03-03', NULL, 2, '2026-04-14 17:11:31', '2026-04-14 17:11:31');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `inventory_items`
+--
+
+CREATE TABLE `inventory_items` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `name` varchar(200) NOT NULL,
+  `category` varchar(100) DEFAULT NULL,
+  `unit` varchar(50) DEFAULT NULL,
+  `quantity_in_stock` decimal(10,2) DEFAULT 0.00,
+  `reorder_level` decimal(10,2) DEFAULT 0.00,
+  `unit_cost` decimal(12,2) DEFAULT NULL,
+  `supplier` varchar(150) DEFAULT NULL,
+  `notes` text DEFAULT NULL,
+  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `inventory_items`
+--
+
+INSERT INTO `inventory_items` (`id`, `name`, `category`, `unit`, `quantity_in_stock`, `reorder_level`, `unit_cost`, `supplier`, `notes`, `created_at`, `updated_at`) VALUES
+(1, 'PVC Pipe 100mm', 'Pipe', 'pcs', 500.00, 100.00, 250.00, 'AquaSupply PH', NULL, '2026-04-14 17:11:31', '2026-04-14 17:11:31'),
+(2, 'HDPE Pipe 300mm', 'Pipe', 'meters', 300.00, 80.00, 1200.00, 'WaterWorks Inc', NULL, '2026-04-14 17:11:31', '2026-04-14 17:11:31'),
+(3, 'Gate Valve 50mm', 'Valve', 'pcs', 120.00, 30.00, 1500.00, 'ValveCorp', NULL, '2026-04-14 17:11:31', '2026-04-14 17:11:31'),
+(4, 'Water Meter Sensus', 'Meter', 'pcs', 80.00, 20.00, 3500.00, 'Sensus PH', NULL, '2026-04-14 17:11:31', '2026-04-14 17:11:31'),
+(5, 'GI Pipe 75mm', 'Pipe', 'meters', 200.00, 50.00, 600.00, 'MetalFlow', NULL, '2026-04-14 17:11:31', '2026-04-14 17:11:31'),
+(6, 'Clamp Repair Kit', 'Fittings', 'set', 150.00, 40.00, 450.00, 'FixIt Supplies', NULL, '2026-04-14 17:11:31', '2026-04-14 17:11:31'),
+(7, 'Pump Seal Kit', 'Pump', 'set', 40.00, 10.00, 2500.00, 'AquaTech', NULL, '2026-04-14 17:11:31', '2026-04-14 17:11:31'),
+(8, 'HDPE Coupling', 'Fittings', 'pcs', 300.00, 60.00, 180.00, 'PipeLink', NULL, '2026-04-14 17:11:31', '2026-04-14 17:11:31'),
+(9, 'Pressure Gauge', 'Instrument', 'pcs', 60.00, 15.00, 900.00, 'GaugePro', NULL, '2026-04-14 17:11:31', '2026-04-14 17:11:31'),
+(10, 'PVC Elbow 90°', 'Fittings', 'pcs', 400.00, 100.00, 80.00, 'AquaSupply PH', NULL, '2026-04-14 17:11:31', '2026-04-14 17:11:31');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `inventory_transactions`
+--
+
+CREATE TABLE `inventory_transactions` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `item_id` int(10) UNSIGNED NOT NULL,
+  `transaction_type` enum('In','Out','Adjustment') NOT NULL,
+  `quantity` decimal(10,2) NOT NULL,
+  `reference` varchar(100) DEFAULT NULL COMMENT 'work order or PO number',
+  `notes` text DEFAULT NULL,
+  `transacted_by` int(10) UNSIGNED DEFAULT NULL,
+  `transacted_at` datetime NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `inventory_transactions`
+--
+
+INSERT INTO `inventory_transactions` (`id`, `item_id`, `transaction_type`, `quantity`, `reference`, `notes`, `transacted_by`, `transacted_at`) VALUES
+(1, 1, 'Out', 50.00, 'WO-1001', NULL, 2, '2026-04-14 17:11:31'),
+(2, 2, 'Out', 20.00, 'WO-1002', NULL, 2, '2026-04-14 17:11:31'),
+(3, 3, 'Out', 10.00, 'WO-1003', NULL, 3, '2026-04-14 17:11:31'),
+(4, 4, 'In', 30.00, 'PO-2001', NULL, 1, '2026-04-14 17:11:31'),
+(5, 5, 'Out', 15.00, 'WO-1004', NULL, 2, '2026-04-14 17:11:31'),
+(6, 6, 'Out', 25.00, 'WO-1005', NULL, 3, '2026-04-14 17:11:31'),
+(7, 7, 'In', 10.00, 'PO-2002', NULL, 1, '2026-04-14 17:11:31'),
+(8, 8, 'Out', 40.00, 'WO-1006', NULL, 2, '2026-04-14 17:11:31'),
+(9, 9, 'Out', 8.00, 'WO-1007', NULL, 3, '2026-04-14 17:11:31'),
+(10, 10, 'In', 50.00, 'PO-2003', NULL, 1, '2026-04-14 17:11:31');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `maintenance_schedule`
+--
+
+CREATE TABLE `maintenance_schedule` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `title` varchar(200) NOT NULL,
+  `type` varchar(100) DEFAULT NULL,
+  `frequency` enum('Daily','Weekly','Monthly','Quarterly','Annual','Once') NOT NULL,
+  `next_due` date NOT NULL,
+  `infrastructure_id` int(10) UNSIGNED DEFAULT NULL,
+  `assigned_to` int(10) UNSIGNED DEFAULT NULL,
+  `notes` text DEFAULT NULL,
+  `is_active` tinyint(1) DEFAULT 1,
+  `created_by` int(10) UNSIGNED DEFAULT NULL,
+  `created_at` datetime NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `maintenance_schedule`
+--
+
+INSERT INTO `maintenance_schedule` (`id`, `title`, `type`, `frequency`, `next_due`, `infrastructure_id`, `assigned_to`, `notes`, `is_active`, `created_by`, `created_at`) VALUES
+(1, 'Pump Monthly Check', 'Pump', 'Monthly', '2026-05-01', 1, 2, NULL, 1, 1, '2026-04-14 17:11:31'),
+(2, 'Reservoir Cleaning', 'Reservoir', 'Quarterly', '2026-06-01', 2, 3, NULL, 1, 1, '2026-04-14 17:11:31'),
+(3, 'Valve Inspection', 'Valve', 'Monthly', '2026-04-25', 3, 2, NULL, 1, 2, '2026-04-14 17:11:31'),
+(4, 'Hydrant Testing', 'Hydrant', 'Annual', '2026-08-01', 4, 3, NULL, 1, 1, '2026-04-14 17:11:31'),
+(5, 'Pipeline Pressure Audit', 'Mainline', 'Quarterly', '2026-07-01', NULL, 2, NULL, 1, 1, '2026-04-14 17:11:31');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `notifications`
+--
+
+CREATE TABLE `notifications` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `user_id` int(10) UNSIGNED DEFAULT NULL,
+  `consumer_id` int(10) UNSIGNED DEFAULT NULL,
+  `type` enum('interruption','alert','reminder','message','system') NOT NULL,
+  `title` varchar(200) NOT NULL,
+  `message` text DEFAULT NULL,
+  `is_read` tinyint(1) DEFAULT 0,
+  `created_at` datetime NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `notifications`
+--
+
+INSERT INTO `notifications` (`id`, `user_id`, `consumer_id`, `type`, `title`, `message`, `is_read`, `created_at`) VALUES
+(1, 2, NULL, 'alert', 'Work Order Assigned', 'You have been assigned a new work order', 0, '2026-04-14 17:11:31'),
+(2, 3, NULL, 'system', 'Inventory Low', 'PVC Pipe stock is below reorder level', 0, '2026-04-14 17:11:31'),
+(3, 2, NULL, 'interruption', 'Water Interruption', 'Scheduled maintenance tomorrow', 0, '2026-04-14 17:11:31'),
+(4, 1, NULL, 'reminder', 'Report Due', 'Monthly GIS report pending', 0, '2026-04-14 17:11:31'),
+(5, 3, NULL, 'message', 'Consumer Complaint', 'New billing dispute received', 0, '2026-04-14 17:11:31');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `parcels`
+--
+
+CREATE TABLE `parcels` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `parcel_code` varchar(50) DEFAULT NULL,
+  `owner_name` varchar(150) DEFAULT NULL,
+  `address` text DEFAULT NULL,
+  `barangay` varchar(100) DEFAULT NULL,
+  `area_sqm` decimal(12,2) DEFAULT NULL,
+  `boundary_geojson` longtext DEFAULT NULL COMMENT 'GeoJSON polygon',
+  `notes` text DEFAULT NULL,
+  `created_by` int(10) UNSIGNED DEFAULT NULL,
+  `created_at` datetime NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `parcels`
+--
+
+INSERT INTO `parcels` (`id`, `parcel_code`, `owner_name`, `address`, `barangay`, `area_sqm`, `boundary_geojson`, `notes`, `created_by`, `created_at`) VALUES
+(1, 'P-001', 'Municipal Gov', 'Municipal Complex', 'Poblacion', 12000.00, NULL, NULL, NULL, '2026-04-14 17:11:31'),
+(2, 'P-002', 'DBC Corp', 'Industrial Area', 'Cannery Site', 25000.00, NULL, NULL, NULL, '2026-04-14 17:11:31'),
+(3, 'P-003', 'Private Lot', 'Residential Zone', 'Magsaysay', 8000.00, NULL, NULL, NULL, '2026-04-14 17:11:31');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `pipelines`
+--
+
+CREATE TABLE `pipelines` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `name` varchar(150) DEFAULT NULL,
+  `pipeline_type` enum('Transmission','Distribution','Service Line') NOT NULL DEFAULT 'Distribution',
+  `material` enum('PVC','HDPE','Steel','GI','GIP','PE','SSP','CLCC Steel','PVC-O','UPBC','other') NOT NULL,
+  `diameter_mm` int(11) DEFAULT NULL,
+  `pressure_class` enum('Low','Medium','High','Very High') DEFAULT 'Medium',
+  `length_m` decimal(10,2) DEFAULT NULL,
+  `status` enum('active','inactive','rehabilitation','new') NOT NULL DEFAULT 'active',
+  `installation_date` date DEFAULT NULL,
+  `installation_year` year(4) DEFAULT NULL,
+  `last_inspection_date` date DEFAULT NULL,
+  `condition_rating` enum('Excellent','Good','Fair','Poor','Critical') DEFAULT 'Good',
+  `path_geojson` longtext DEFAULT NULL COMMENT 'GeoJSON LineString',
+  `barangay` varchar(100) DEFAULT NULL,
+  `notes` text DEFAULT NULL,
+  `created_by` int(10) UNSIGNED DEFAULT NULL,
+  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `flow_rate_lps` decimal(8,2) DEFAULT NULL COMMENT 'Litres per second design flow rate',
+  `operating_pressure_bar` decimal(6,2) DEFAULT NULL,
+  `max_pressure_bar` decimal(6,2) DEFAULT NULL,
+  `coating` varchar(100) DEFAULT NULL COMMENT 'Pipe coating/lining type',
+  `joint_type` varchar(100) DEFAULT NULL,
+  `zone_id` int(10) UNSIGNED DEFAULT NULL COMMENT 'Distribution zone',
+  `is_flagged` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'Flagged for inspection/maintenance',
+  `flag_reason` text DEFAULT NULL,
+  `status_change_count` smallint(5) UNSIGNED NOT NULL DEFAULT 0 COMMENT 'Auto-tracked status change count'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `pipelines`
+--
+
+INSERT INTO `pipelines` (`id`, `name`, `pipeline_type`, `material`, `diameter_mm`, `pressure_class`, `length_m`, `status`, `installation_date`, `installation_year`, `last_inspection_date`, `condition_rating`, `path_geojson`, `barangay`, `notes`, `created_by`, `created_at`, `updated_at`, `flow_rate_lps`, `operating_pressure_bar`, `max_pressure_bar`, `coating`, `joint_type`, `zone_id`, `is_flagged`, `flag_reason`, `status_change_count`) VALUES
+(1, 'Main Line Poblacion', 'Transmission', 'HDPE', 300, 'Medium', 1200.00, 'active', '2015-06-01', '2015', NULL, 'Good', NULL, 'Poblacion', NULL, NULL, '2026-04-14 17:11:31', '2026-04-14 17:11:31', 45.50, 6.20, NULL, NULL, NULL, NULL, 0, NULL, 0),
+(2, 'Cannery Distribution A', 'Distribution', 'PVC', 200, 'Medium', 800.00, 'active', '2018-03-10', '2018', NULL, 'Good', NULL, 'Cannery Site', NULL, NULL, '2026-04-14 17:11:31', '2026-04-14 17:11:31', 30.00, 5.50, NULL, NULL, NULL, NULL, 0, NULL, 0),
+(3, 'Magsaysay Service Line', 'Service Line', 'GI', 100, 'Medium', 500.00, 'active', '2012-09-12', '2012', NULL, 'Fair', NULL, 'Magsaysay', NULL, NULL, '2026-04-14 17:11:31', '2026-04-14 17:11:31', 15.00, 4.00, NULL, NULL, NULL, NULL, 0, NULL, 0),
+(4, 'Polo Extension', 'Distribution', 'PE', 150, 'Medium', 650.00, 'active', '2020-01-05', '2020', NULL, 'Excellent', NULL, 'Polo', NULL, NULL, '2026-04-14 17:11:31', '2026-04-14 17:11:31', 25.00, 5.00, NULL, NULL, NULL, NULL, 0, NULL, 0),
+(5, 'Koronadal Highway Line', 'Transmission', 'Steel', 350, 'Medium', 1500.00, 'active', '2010-11-20', '2010', NULL, 'Fair', NULL, 'Koronadal Highway', NULL, NULL, '2026-04-14 17:11:31', '2026-04-14 17:11:31', 60.00, 7.00, NULL, NULL, NULL, NULL, 0, NULL, 0),
+(6, 'Poblacion Loop', 'Distribution', 'PVC', 200, 'Medium', 900.00, 'active', '2019-07-18', '2019', NULL, 'Good', NULL, 'Poblacion', NULL, NULL, '2026-04-14 17:11:31', '2026-04-14 17:11:31', 35.00, 5.20, NULL, NULL, NULL, NULL, 0, NULL, 0),
+(7, 'Industrial Zone Feed', 'Transmission', 'HDPE', 400, 'Medium', 1800.00, 'active', '2016-02-14', '2016', NULL, 'Good', NULL, 'Poblacion', NULL, NULL, '2026-04-14 17:11:31', '2026-04-14 17:11:31', 70.00, 7.50, NULL, NULL, NULL, NULL, 0, NULL, 0),
+(8, 'Magsaysay Secondary', 'Distribution', 'GI', 150, 'Medium', 700.00, 'active', '2013-04-25', '2013', NULL, 'Fair', NULL, 'Magsaysay', NULL, NULL, '2026-04-14 17:11:31', '2026-04-14 17:11:31', 22.00, 4.50, NULL, NULL, NULL, NULL, 0, NULL, 0),
+(9, 'Cannery Backup Line', 'Distribution', 'PVC', 200, 'Medium', 600.00, 'active', '2021-08-08', '2021', NULL, 'Excellent', NULL, 'Cannery Site', NULL, NULL, '2026-04-14 17:11:31', '2026-04-14 17:11:31', 28.00, 5.10, NULL, NULL, NULL, NULL, 0, NULL, 0),
+(10, 'Polo High Pressure Line', 'Transmission', 'Steel', 450, 'Medium', 2000.00, 'active', '2008-05-15', '2008', NULL, 'Poor', NULL, 'Polo', NULL, NULL, '2026-04-14 17:11:31', '2026-04-14 17:11:31', 80.00, 8.00, NULL, NULL, NULL, NULL, 0, NULL, 0);
+
+--
+-- Triggers `pipelines`
+--
+DELIMITER $$
+CREATE TRIGGER `trg_pipeline_before_update` BEFORE UPDATE ON `pipelines` FOR EACH ROW BEGIN
+  -- Log status changes
+  IF OLD.status != NEW.status THEN
+    INSERT INTO pipeline_history
+      (pipeline_id, change_type, field_changed, old_value, new_value, reason)
+    VALUES
+      (OLD.id, 'status_change', 'status', OLD.status, NEW.status, 'Trigger-logged');
+    SET NEW.status_change_count = OLD.status_change_count + 1;
+  END IF;
+
+  -- Log material changes
+  IF OLD.material != NEW.material THEN
+    INSERT INTO pipeline_history
+      (pipeline_id, change_type, field_changed, old_value, new_value, reason)
+    VALUES
+      (OLD.id, 'material_change', 'material', OLD.material, NEW.material, 'Trigger-logged');
+  END IF;
+
+  -- Log diameter changes
+  IF OLD.diameter_mm != NEW.diameter_mm THEN
+    INSERT INTO pipeline_history
+      (pipeline_id, change_type, field_changed, old_value, new_value, reason)
+    VALUES
+      (OLD.id, 'diameter_change', 'diameter_mm',
+       CAST(OLD.diameter_mm AS CHAR), CAST(NEW.diameter_mm AS CHAR), 'Trigger-logged');
+  END IF;
+
+  -- Log condition rating changes
+  IF (OLD.condition_rating IS NULL AND NEW.condition_rating IS NOT NULL)
+     OR (OLD.condition_rating != NEW.condition_rating) THEN
+    INSERT INTO pipeline_history
+      (pipeline_id, change_type, field_changed, old_value, new_value, reason)
+    VALUES
+      (OLD.id, 'other', 'condition_rating',
+       COALESCE(OLD.condition_rating, 'NULL'),
+       COALESCE(NEW.condition_rating, 'NULL'), 'Trigger-logged');
+  END IF;
+
+  -- Log pressure class changes
+  IF (OLD.pressure_class IS NULL AND NEW.pressure_class IS NOT NULL)
+     OR OLD.pressure_class != NEW.pressure_class THEN
+    INSERT INTO pipeline_history
+      (pipeline_id, change_type, field_changed, old_value, new_value, reason)
+    VALUES
+      (OLD.id, 'other', 'pressure_class',
+       COALESCE(OLD.pressure_class,'NULL'),
+       COALESCE(NEW.pressure_class,'NULL'), 'Trigger-logged');
+  END IF;
+END
+$$
+DELIMITER ;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `pipeline_history`
+--
+
+CREATE TABLE `pipeline_history` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `pipeline_id` int(10) UNSIGNED NOT NULL,
+  `changed_by` int(10) UNSIGNED DEFAULT NULL,
+  `change_type` enum('status_change','material_change','diameter_change','path_change','other') DEFAULT NULL,
+  `old_value` text DEFAULT NULL,
+  `new_value` text DEFAULT NULL,
+  `reason` text DEFAULT NULL,
+  `changed_at` datetime NOT NULL DEFAULT current_timestamp(),
+  `field_changed` varchar(100) DEFAULT NULL COMMENT 'Which specific field was changed',
+  `session_id` varchar(100) DEFAULT NULL COMMENT 'Session/transaction grouping',
+  `ip_address` varchar(45) DEFAULT NULL,
+  `metadata` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL COMMENT 'Additional context as JSON' CHECK (json_valid(`metadata`))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `pipeline_inspection_checklist`
+--
+
+CREATE TABLE `pipeline_inspection_checklist` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `pipeline_id` int(10) UNSIGNED NOT NULL,
+  `inspected_at` datetime NOT NULL DEFAULT current_timestamp(),
+  `inspector_id` int(10) UNSIGNED DEFAULT NULL,
+  `no_visible_leaks` tinyint(1) DEFAULT 0,
+  `corrosion_observed` tinyint(1) DEFAULT 0,
+  `joint_integrity_ok` tinyint(1) DEFAULT 0,
+  `pressure_within_range` tinyint(1) DEFAULT 0,
+  `valve_accessible` tinyint(1) DEFAULT 0,
+  `cathodic_protection` tinyint(1) DEFAULT 0,
+  `remarks` text DEFAULT NULL,
+  `overall_rating` enum('Excellent','Good','Fair','Poor','Critical') DEFAULT 'Good'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `pipeline_maintenance_events`
+--
+
+CREATE TABLE `pipeline_maintenance_events` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `pipeline_id` int(10) UNSIGNED NOT NULL,
+  `event_type` enum('Inspection','Repair','Replacement','Cleaning','Pressure Test','Leak Detection','Valve Operation','Other') NOT NULL,
+  `event_date` date NOT NULL,
+  `description` text DEFAULT NULL,
+  `cost_php` decimal(12,2) DEFAULT NULL,
+  `work_order_id` int(10) UNSIGNED DEFAULT NULL,
+  `findings` text DEFAULT NULL,
+  `performed_by` int(10) UNSIGNED DEFAULT NULL COMMENT 'users.id',
+  `next_due_date` date DEFAULT NULL,
+  `created_at` datetime NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `pipeline_zones`
+--
+
+CREATE TABLE `pipeline_zones` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `zone_code` varchar(20) NOT NULL,
+  `zone_name` varchar(150) NOT NULL,
+  `description` text DEFAULT NULL,
+  `color` varchar(7) DEFAULT '#0057ff' COMMENT 'Hex color for map display',
+  `barangays` text DEFAULT NULL COMMENT 'Comma-separated barangay list',
+  `created_at` datetime NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `pipeline_zones`
+--
+
+INSERT INTO `pipeline_zones` (`id`, `zone_code`, `zone_name`, `description`, `color`, `barangays`, `created_at`) VALUES
+(1, 'Z1', 'Zone 1', 'Poblacion & Magsaysay Core', '#0057ff', 'Poblacion,Magsaysay', '2026-04-14 17:11:31'),
+(2, 'Z2', 'Zone 2', 'Cannery & Highway', '#0057ff', 'Cannery Site,Koronadal Highway', '2026-04-14 17:11:31'),
+(3, 'Z3', 'Zone 3', 'Polo Expansion', '#0057ff', 'Polo', '2026-04-14 17:11:31');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `users`
+--
+
+CREATE TABLE `users` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `username` varchar(80) NOT NULL,
+  `password_hash` varchar(255) NOT NULL,
+  `name` varchar(150) NOT NULL,
+  `role` enum('Admin','Staff','Consumer') NOT NULL DEFAULT 'Staff',
+  `section` varchar(100) DEFAULT NULL,
+  `email` varchar(150) DEFAULT NULL,
+  `phone` varchar(30) DEFAULT NULL,
+  `is_active` tinyint(1) NOT NULL DEFAULT 1,
+  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `users`
+--
+
+INSERT INTO `users` (`id`, `username`, `password_hash`, `name`, `role`, `section`, `email`, `phone`, `is_active`, `created_at`, `updated_at`) VALUES
+(1, 'admin', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'System Administrator', 'Admin', 'Planning', 'admin@polwd.gov.ph', NULL, 1, '2026-03-21 18:44:04', '2026-03-21 18:44:04'),
+(2, 'staff1', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Juan Dela Cruz', 'Staff', 'Operations', 'staff1@polwd.gov.ph', NULL, 1, '2026-03-21 18:44:04', '2026-03-21 18:44:04'),
+(3, 'admin2', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Assistant Administrator', 'Admin', 'Management', 'admin2@polwd.gov.ph', NULL, 1, '2026-04-14 11:13:01', '2026-04-14 11:13:01');
+
+-- --------------------------------------------------------
+
+--
+-- Stand-in structure for view `v_pipeline_risk_assessment`
+-- (See below for the actual view)
+--
+CREATE TABLE `v_pipeline_risk_assessment` (
+`id` int(10) unsigned
+,`name` varchar(150)
+,`pipeline_type` enum('Transmission','Distribution','Service Line')
+,`material` enum('PVC','HDPE','Steel','GI','GIP','PE','SSP','CLCC Steel','PVC-O','UPBC','other')
+,`diameter_mm` int(11)
+,`status` enum('active','inactive','rehabilitation','new')
+,`condition_rating` enum('Excellent','Good','Fair','Poor','Critical')
+,`is_flagged` tinyint(1)
+,`barangay` varchar(100)
+,`installation_date` date
+,`age_years` int(5)
+,`status_change_count` smallint(5) unsigned
+,`total_history_events` bigint(21)
+,`status_changes_6mo` decimal(22,0)
+,`last_change_date` datetime
+,`risk_score` int(9) unsigned
+);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `water_interruptions`
+--
+
+CREATE TABLE `water_interruptions` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `title` varchar(200) NOT NULL,
+  `description` text DEFAULT NULL,
+  `affected_barangays` text DEFAULT NULL COMMENT 'comma-separated',
+  `start_datetime` datetime NOT NULL,
+  `end_datetime` datetime DEFAULT NULL,
+  `status` enum('Scheduled','Ongoing','Resolved') DEFAULT 'Scheduled',
+  `notification_sent` tinyint(1) DEFAULT 0,
+  `created_by` int(10) UNSIGNED DEFAULT NULL,
+  `created_at` datetime NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `water_meters`
+--
+
+CREATE TABLE `water_meters` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `consumer_id` int(10) UNSIGNED NOT NULL,
+  `meter_no` varchar(80) NOT NULL,
+  `brand` varchar(100) DEFAULT NULL,
+  `installation_date` date DEFAULT NULL,
+  `latitude` decimal(11,8) DEFAULT NULL,
+  `longitude` decimal(11,8) DEFAULT NULL,
+  `status` enum('active','defective','removed') NOT NULL DEFAULT 'active',
+  `notes` text DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `water_meters`
+--
+
+INSERT INTO `water_meters` (`id`, `consumer_id`, `meter_no`, `brand`, `installation_date`, `latitude`, `longitude`, `status`, `notes`) VALUES
+(1, 203, 'MTR-10001', 'Zenner', '2019-05-12', 6.22154000, 125.06321000, 'active', NULL),
+(2, 204, 'MTR-10002', 'Elster', '2020-02-18', 6.22211000, 125.06411000, 'active', NULL),
+(3, 205, 'MTR-10003', 'Sensus', '2018-01-10', 6.22300000, 125.06500000, 'active', NULL),
+(4, 206, 'MTR-10004', 'Zenner', '2021-07-21', 6.22354000, 125.06612000, 'active', NULL),
+(5, 207, 'MTR-10005', 'Elster', '2019-11-03', 6.22412000, 125.06700000, 'active', NULL),
+(6, 208, 'MTR-10006', 'Sensus', '2022-03-14', 6.22500000, 125.06780000, 'active', NULL),
+(7, 209, 'MTR-10007', 'Zenner', '2018-06-01', 6.22190000, 125.06350000, 'active', NULL),
+(8, 210, 'MTR-10008', 'Elster', '2020-09-09', 6.22280000, 125.06450000, 'active', NULL),
+(9, 211, 'MTR-10009', 'Zenner', '2021-01-20', 6.22230000, 125.06400000, 'active', NULL),
+(10, 212, 'MTR-10010', 'Sensus', '2019-08-15', 6.22260000, 125.06480000, 'active', NULL),
+(11, 213, 'MTR-10011', 'Zenner', '2020-12-01', 6.22400000, 125.06650000, 'active', NULL),
+(12, 214, 'MTR-10012', 'Elster', '2021-04-11', 6.22480000, 125.06740000, 'active', NULL),
+(13, 215, 'MTR-10013', 'Zenner', '2022-06-22', 6.22170000, 125.06390000, 'active', NULL),
+(14, 216, 'MTR-10014', 'Sensus', '2018-10-30', 6.22320000, 125.06580000, 'active', NULL),
+(15, 217, 'MTR-10015', 'Zenner', '2020-05-05', 6.22520000, 125.06820000, 'active', NULL),
+(16, 218, 'MTR-10016', 'Elster', '2019-03-18', 6.22430000, 125.06690000, 'active', NULL),
+(17, 219, 'MTR-10017', 'Zenner', '2018-07-07', 6.22160000, 125.06330000, 'active', NULL),
+(18, 220, 'MTR-10018', 'Sensus', '2021-11-11', 6.22200000, 125.06420000, 'active', NULL),
+(19, 221, 'MTR-10019', 'Zenner', '2022-08-08', 6.22290000, 125.06490000, 'active', NULL),
+(20, 222, 'MTR-10020', 'Elster', '2018-02-14', 6.22250000, 125.06460000, 'active', NULL);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `work_orders`
+--
+
+CREATE TABLE `work_orders` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `title` varchar(200) NOT NULL,
+  `description` text DEFAULT NULL,
+  `type` enum('Mainline','Serviceline','Pump','Valve','Reservoir','Electrical','Other') NOT NULL,
+  `priority` enum('Low','Medium','High','Critical') NOT NULL DEFAULT 'Medium',
+  `status` enum('Pending','In Progress','Completed','Cancelled') NOT NULL DEFAULT 'Pending',
+  `location` text DEFAULT NULL,
+  `latitude` decimal(11,8) DEFAULT NULL,
+  `longitude` decimal(11,8) DEFAULT NULL,
+  `assigned_to` int(10) UNSIGNED DEFAULT NULL,
+  `scheduled_date` date DEFAULT NULL,
+  `started_at` datetime DEFAULT NULL,
+  `completed_at` datetime DEFAULT NULL,
+  `downtime_minutes` int(11) DEFAULT 0,
+  `cause` text DEFAULT NULL,
+  `resolution` text DEFAULT NULL,
+  `created_by` int(10) UNSIGNED DEFAULT NULL,
+  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `work_orders`
+--
+
+INSERT INTO `work_orders` (`id`, `title`, `description`, `type`, `priority`, `status`, `location`, `latitude`, `longitude`, `assigned_to`, `scheduled_date`, `started_at`, `completed_at`, `downtime_minutes`, `cause`, `resolution`, `created_by`, `created_at`, `updated_at`) VALUES
+(1, 'Leak Repair Poblacion', 'Pipe leak reported near market', 'Serviceline', 'High', 'Completed', 'Poblacion Market', 6.22260000, 125.06480000, 2, '2025-01-10', NULL, NULL, 0, NULL, NULL, 1, '2026-04-14 17:11:31', '2026-04-14 17:11:31'),
+(2, 'Valve Replacement', 'Replace old valve', 'Valve', 'Medium', 'In Progress', 'Magsaysay', 6.22320000, 125.06520000, 3, '2026-01-15', NULL, NULL, 0, NULL, NULL, 1, '2026-04-14 17:11:31', '2026-04-14 17:11:31'),
+(3, 'Pump Maintenance', 'Routine pump check', 'Pump', 'High', 'Pending', 'Main Station', 6.22250000, 125.06450000, 2, '2026-02-01', NULL, NULL, 0, NULL, NULL, 1, '2026-04-14 17:11:31', '2026-04-14 17:11:31'),
+(4, 'Pipeline Inspection', 'Inspect HDPE line', 'Mainline', 'Medium', 'Completed', 'Cannery Site', 6.22400000, 125.06600000, 3, '2025-11-10', NULL, NULL, 0, NULL, NULL, 2, '2026-04-14 17:11:31', '2026-04-14 17:11:31'),
+(5, 'Hydrant Repair', 'Fix leaking hydrant', 'Valve', 'High', 'In Progress', 'Industrial Zone', 6.22360000, 125.06630000, 2, '2026-01-20', NULL, NULL, 0, NULL, NULL, 2, '2026-04-14 17:11:31', '2026-04-14 17:11:31'),
+(6, 'Service Connection Install', 'New connection request', 'Serviceline', 'Medium', 'Pending', 'Polo', 6.22500000, 125.06780000, 3, '2026-03-01', NULL, NULL, 0, NULL, NULL, 1, '2026-04-14 17:11:31', '2026-04-14 17:11:31'),
+(7, 'Reservoir Cleaning', 'Clean reservoir tank', 'Reservoir', 'High', 'Completed', 'Magsaysay Tank', 6.22290000, 125.06420000, 2, '2025-08-08', NULL, NULL, 0, NULL, NULL, 1, '2026-04-14 17:11:31', '2026-04-14 17:11:31'),
+(8, 'Pipe Burst Response', 'Emergency repair', 'Mainline', 'Critical', 'Completed', 'Koronadal Highway', 6.22350000, 125.06610000, 3, '2025-07-07', NULL, NULL, 0, NULL, NULL, 2, '2026-04-14 17:11:31', '2026-04-14 17:11:31'),
+(9, 'Meter Replacement', 'Replace faulty meter', 'Serviceline', 'Medium', 'Pending', 'Poblacion', 6.22230000, 125.06410000, 2, '2026-04-20', NULL, NULL, 0, NULL, NULL, 1, '2026-04-14 17:11:31', '2026-04-14 17:11:31'),
+(10, 'Pressure Test', 'System pressure test', 'Mainline', 'High', 'In Progress', 'Industrial Zone', 6.22380000, 125.06590000, 3, '2026-01-25', NULL, NULL, 0, NULL, NULL, 1, '2026-04-14 17:11:31', '2026-04-14 17:11:31'),
+(11, 'Leak Survey', 'Network leak survey', 'Mainline', 'Medium', 'Pending', 'Poblacion', 6.22220000, 125.06400000, 2, '2026-02-10', NULL, NULL, 0, NULL, NULL, 1, '2026-04-14 17:11:31', '2026-04-14 17:11:31'),
+(12, 'Valve Calibration', 'Calibrate control valve', 'Valve', 'Low', 'Completed', 'Polo', 6.22510000, 125.06770000, 3, '2025-12-12', NULL, NULL, 0, NULL, NULL, 2, '2026-04-14 17:11:31', '2026-04-14 17:11:31'),
+(13, 'Pump Upgrade', 'Upgrade pump system', 'Pump', 'High', 'Pending', 'Main Station', 6.22250000, 125.06450000, 2, '2026-05-01', NULL, NULL, 0, NULL, NULL, 1, '2026-04-14 17:11:31', '2026-04-14 17:11:31'),
+(14, 'Emergency Response Drill', 'Training drill', 'Other', 'Low', 'Completed', 'Poblacion', 6.22260000, 125.06460000, 3, '2025-06-01', NULL, NULL, 0, NULL, NULL, 1, '2026-04-14 17:11:31', '2026-04-14 17:11:31'),
+(15, 'Distribution Expansion', 'Extend pipeline', 'Mainline', 'High', 'Pending', 'Cannery Site', 6.22410000, 125.06620000, 2, '2026-06-01', NULL, NULL, 0, NULL, NULL, 1, '2026-04-14 17:11:31', '2026-04-14 17:11:31'),
+(16, 'Pressure Test', '', 'Serviceline', 'High', 'Pending', 'Industrial Zone', 6.22119300, 125.07119200, NULL, '2026-04-15', NULL, NULL, 0, '', NULL, 3, '2026-04-14 17:20:18', '2026-04-14 17:20:18'),
+(101, 'Leak Repair - Poblacion Market', 'Pipe leak detected near main market line', 'Serviceline', 'High', 'Completed', 'Poblacion Market', 6.22260000, 125.06480000, 2, '2025-01-10', '2025-01-10 08:00:00', '2025-01-10 11:30:00', 210, 'Aging PVC pipe', 'Replaced damaged pipe section', 1, '2025-01-10 07:30:00', '2026-04-14 17:22:05'),
+(102, 'Valve Replacement - Magsaysay Zone', 'Old valve not sealing properly', 'Valve', 'Medium', 'In Progress', 'Brgy Magsaysay', 6.22320000, 125.06520000, 3, '2026-01-15', '2026-01-15 09:00:00', NULL, 0, 'Wear and tear', NULL, 1, '2026-01-14 16:00:00', '2026-04-14 17:22:05'),
+(103, 'Pump Maintenance - Main Station', 'Routine pump inspection and lubrication', 'Pump', 'High', 'Pending', 'Main Pump Station', 6.22250000, 125.06450000, 2, '2026-02-01', NULL, NULL, 0, NULL, NULL, 1, '2026-01-20 10:00:00', '2026-04-14 17:22:05'),
+(104, 'Hydrant Repair - Industrial Zone', 'Fire hydrant leaking at base', 'Valve', 'High', 'Completed', 'Industrial Zone', 6.22360000, 125.06630000, 3, '2025-11-10', '2025-11-10 13:00:00', '2025-11-10 16:00:00', 180, 'Seal failure', 'Replaced gasket and tightened fittings', 2, '2025-11-10 09:00:00', '2026-04-14 17:22:05'),
+(105, 'Pipeline Inspection - Cannery Site', 'Inspect HDPE distribution line', 'Mainline', 'Medium', 'Completed', 'Cannery Site', 6.22400000, 125.06600000, 2, '2025-10-05', '2025-10-05 08:30:00', '2025-10-05 12:00:00', 210, 'Preventive inspection', 'No major defects found', 2, '2025-10-05 07:45:00', '2026-04-14 17:22:05'),
+(106, 'Emergency Pipe Burst - Highway', 'Major pipe burst affecting supply', 'Mainline', 'Critical', 'Completed', 'Koronadal Highway', 6.22350000, 125.06610000, 3, '2025-07-07', '2025-07-07 02:00:00', '2025-07-07 09:30:00', 450, 'High pressure failure', 'Emergency pipe replacement completed', 1, '2025-07-07 01:30:00', '2026-04-14 17:22:05'),
+(107, 'Meter Replacement - Poblacion', 'Replace defective water meter', 'Serviceline', 'Medium', 'Pending', 'Poblacion', 6.22230000, 125.06410000, 2, '2026-04-20', NULL, NULL, 0, 'Meter malfunction', NULL, 1, '2026-04-10 14:00:00', '2026-04-14 17:22:05'),
+(108, 'Reservoir Cleaning - Magsaysay', 'Clean and disinfect reservoir tank', 'Reservoir', 'High', 'Completed', 'Magsaysay Tank', 6.22290000, 125.06420000, 3, '2025-08-08', '2025-08-08 07:00:00', '2025-08-08 11:00:00', 240, 'Routine maintenance', 'Tank cleaned and disinfected', 2, '2025-08-08 06:30:00', '2026-04-14 17:22:05'),
+(109, 'Pressure Test - Industrial Line', 'System pressure testing for validation', 'Mainline', 'High', 'In Progress', 'Industrial Zone', 6.22380000, 125.06590000, 2, '2026-01-25', '2026-01-25 09:00:00', NULL, 0, NULL, NULL, 1, '2026-01-24 18:00:00', '2026-04-14 17:22:05'),
+(110, 'Leak Survey - Poblacion Core', 'Network-wide leak detection survey', 'Mainline', 'Medium', 'Pending', 'Poblacion', 6.22220000, 125.06400000, 3, '2026-02-10', NULL, NULL, 0, NULL, NULL, 1, '2026-02-01 08:00:00', '2026-04-14 17:22:05');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `work_order_checklist`
+--
+
+CREATE TABLE `work_order_checklist` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `work_order_id` int(10) UNSIGNED NOT NULL,
+  `item` varchar(300) NOT NULL,
+  `is_done` tinyint(1) DEFAULT 0,
+  `done_by` int(10) UNSIGNED DEFAULT NULL,
+  `done_at` datetime DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `work_order_checklist`
+--
+
+INSERT INTO `work_order_checklist` (`id`, `work_order_id`, `item`, `is_done`, `done_by`, `done_at`) VALUES
+(1, 101, 'Locate leak point', 1, 2, '2025-01-10 08:30:00'),
+(2, 101, 'Excavate affected area', 1, 2, '2025-01-10 09:00:00'),
+(3, 101, 'Replace damaged pipe section', 1, 2, '2025-01-10 10:30:00'),
+(4, 101, 'Pressure test line', 1, 2, '2025-01-10 11:00:00'),
+(5, 102, 'Inspect valve condition', 1, 3, '2026-01-15 09:30:00'),
+(6, 102, 'Remove old valve', 0, NULL, NULL),
+(7, 102, 'Install new valve', 0, NULL, NULL),
+(8, 102, 'System testing', 0, NULL, NULL),
+(9, 103, 'Shutdown pump system', 0, NULL, NULL),
+(10, 103, 'Inspect bearings', 0, NULL, NULL),
+(11, 103, 'Lubrication', 0, NULL, NULL),
+(12, 103, 'Restart pump', 0, NULL, NULL),
+(13, 104, 'Check hydrant leakage', 1, 3, '2025-11-10 13:30:00'),
+(14, 104, 'Replace gasket', 1, 3, '2025-11-10 14:30:00'),
+(15, 104, 'Pressure test hydrant', 1, 3, '2025-11-10 15:30:00'),
+(16, 105, 'Inspect pipeline route', 1, 2, '2025-10-05 09:00:00'),
+(17, 105, 'Check joints and fittings', 1, 2, '2025-10-05 10:00:00'),
+(18, 105, 'Record findings', 1, 2, '2025-10-05 11:30:00'),
+(19, 106, 'Isolate affected pipeline', 1, 3, '2025-07-07 02:30:00'),
+(20, 106, 'Excavate burst section', 1, 3, '2025-07-07 03:30:00'),
+(21, 106, 'Replace pipe segment', 1, 3, '2025-07-07 06:00:00'),
+(22, 106, 'Restore water supply', 1, 3, '2025-07-07 09:00:00'),
+(23, 107, 'Remove old meter', 0, NULL, NULL),
+(24, 107, 'Install new meter', 0, NULL, NULL),
+(25, 107, 'Calibrate reading', 0, NULL, NULL),
+(26, 108, 'Drain reservoir', 1, 3, '2025-08-08 07:30:00'),
+(27, 108, 'Clean interior walls', 1, 3, '2025-08-08 09:00:00'),
+(28, 108, 'Disinfection process', 1, 3, '2025-08-08 10:30:00'),
+(29, 109, 'Setup pressure gauges', 1, 2, '2026-01-25 09:30:00'),
+(30, 109, 'Run pressure test', 0, NULL, NULL),
+(31, 109, 'Record results', 0, NULL, NULL),
+(32, 110, 'Survey pipeline network', 0, NULL, NULL),
+(33, 110, 'Detect leak points', 0, NULL, NULL),
+(34, 110, 'Generate report', 0, NULL, NULL);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `work_order_updates`
+--
+
+CREATE TABLE `work_order_updates` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `work_order_id` int(10) UNSIGNED NOT NULL,
+  `note` text NOT NULL,
+  `status_change` varchar(50) DEFAULT NULL,
+  `updated_by` int(10) UNSIGNED DEFAULT NULL,
+  `updated_at` datetime NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Structure for view `v_pipeline_risk_assessment`
+--
+DROP TABLE IF EXISTS `v_pipeline_risk_assessment`;
+
+CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `v_pipeline_risk_assessment`  AS SELECT `p`.`id` AS `id`, `p`.`name` AS `name`, `p`.`pipeline_type` AS `pipeline_type`, `p`.`material` AS `material`, `p`.`diameter_mm` AS `diameter_mm`, `p`.`status` AS `status`, `p`.`condition_rating` AS `condition_rating`, `p`.`is_flagged` AS `is_flagged`, `p`.`barangay` AS `barangay`, `p`.`installation_date` AS `installation_date`, year(current_timestamp()) - year(`p`.`installation_date`) AS `age_years`, `p`.`status_change_count` AS `status_change_count`, count(`h`.`id`) AS `total_history_events`, sum(case when `h`.`change_type` = 'status_change' and `h`.`changed_at` >= current_timestamp() - interval 6 month then 1 else 0 end) AS `status_changes_6mo`, max(`h`.`changed_at`) AS `last_change_date`, coalesce(year(current_timestamp()) - year(`p`.`installation_date`),0) * 2 + `p`.`status_change_count` * 5 + CASE `p`.`condition_rating` WHEN 'Critical' THEN 50 WHEN 'Poor' THEN 30 WHEN 'Fair' THEN 15 WHEN 'Good' THEN 5 ELSE 0 END+ CASE `p`.`material` WHEN 'Steel' THEN 10 WHEN 'GI' THEN 8 WHEN 'HDPE' THEN 2 ELSE 5 END AS `risk_score` FROM (`pipelines` `p` left join `pipeline_history` `h` on(`h`.`pipeline_id` = `p`.`id`)) WHERE `p`.`installation_date` is not null GROUP BY `p`.`id` ;
+
 --
 -- Indexes for dumped tables
 --
+
+--
+-- Indexes for table `activity_logs`
+--
+ALTER TABLE `activity_logs`
+  ADD PRIMARY KEY (`id`);
+
+--
+-- Indexes for table `chatbot_messages`
+--
+ALTER TABLE `chatbot_messages`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `session_id` (`session_id`);
+
+--
+-- Indexes for table `chatbot_sessions`
+--
+ALTER TABLE `chatbot_sessions`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `session_token` (`session_token`);
+
+--
+-- Indexes for table `communication_history`
+--
+ALTER TABLE `communication_history`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `consumer_id` (`consumer_id`);
 
 --
 -- Indexes for table `consumers`
@@ -299,14 +1360,434 @@ ALTER TABLE `consumers`
   ADD KEY `idx_consumers_latlon` (`latitude`,`longitude`);
 
 --
+-- Indexes for table `consumers_auth`
+--
+ALTER TABLE `consumers_auth`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `account_number` (`account_number`);
+
+--
+-- Indexes for table `consumer_requests`
+--
+ALTER TABLE `consumer_requests`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `consumer_id` (`consumer_id`);
+
+--
+-- Indexes for table `consumption_records`
+--
+ALTER TABLE `consumption_records`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `consumer_id` (`consumer_id`);
+
+--
+-- Indexes for table `csv_imports`
+--
+ALTER TABLE `csv_imports`
+  ADD PRIMARY KEY (`id`);
+
+--
+-- Indexes for table `deterioration_alerts`
+--
+ALTER TABLE `deterioration_alerts`
+  ADD PRIMARY KEY (`id`);
+
+--
+-- Indexes for table `document_templates`
+--
+ALTER TABLE `document_templates`
+  ADD PRIMARY KEY (`id`);
+
+--
+-- Indexes for table `emergency_incidents`
+--
+ALTER TABLE `emergency_incidents`
+  ADD PRIMARY KEY (`id`);
+
+--
+-- Indexes for table `generated_documents`
+--
+ALTER TABLE `generated_documents`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `template_id` (`template_id`);
+
+--
+-- Indexes for table `infrastructure`
+--
+ALTER TABLE `infrastructure`
+  ADD PRIMARY KEY (`id`);
+
+--
+-- Indexes for table `inventory_items`
+--
+ALTER TABLE `inventory_items`
+  ADD PRIMARY KEY (`id`);
+
+--
+-- Indexes for table `inventory_transactions`
+--
+ALTER TABLE `inventory_transactions`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `item_id` (`item_id`);
+
+--
+-- Indexes for table `maintenance_schedule`
+--
+ALTER TABLE `maintenance_schedule`
+  ADD PRIMARY KEY (`id`);
+
+--
+-- Indexes for table `notifications`
+--
+ALTER TABLE `notifications`
+  ADD PRIMARY KEY (`id`);
+
+--
+-- Indexes for table `parcels`
+--
+ALTER TABLE `parcels`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `parcel_code` (`parcel_code`);
+
+--
+-- Indexes for table `pipelines`
+--
+ALTER TABLE `pipelines`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_pipelines_type_status` (`pipeline_type`,`status`),
+  ADD KEY `idx_pipelines_material` (`material`),
+  ADD KEY `idx_pipelines_flagged` (`is_flagged`);
+
+--
+-- Indexes for table `pipeline_history`
+--
+ALTER TABLE `pipeline_history`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `pipeline_id` (`pipeline_id`),
+  ADD KEY `idx_ph_field_changed` (`field_changed`,`changed_at`);
+
+--
+-- Indexes for table `pipeline_inspection_checklist`
+--
+ALTER TABLE `pipeline_inspection_checklist`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `pipeline_id` (`pipeline_id`);
+
+--
+-- Indexes for table `pipeline_maintenance_events`
+--
+ALTER TABLE `pipeline_maintenance_events`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `pipeline_id` (`pipeline_id`),
+  ADD KEY `event_date` (`event_date`);
+
+--
+-- Indexes for table `pipeline_zones`
+--
+ALTER TABLE `pipeline_zones`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `zone_code` (`zone_code`);
+
+--
+-- Indexes for table `users`
+--
+ALTER TABLE `users`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `username` (`username`);
+
+--
+-- Indexes for table `water_interruptions`
+--
+ALTER TABLE `water_interruptions`
+  ADD PRIMARY KEY (`id`);
+
+--
+-- Indexes for table `water_meters`
+--
+ALTER TABLE `water_meters`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `meter_no` (`meter_no`),
+  ADD KEY `consumer_id` (`consumer_id`);
+
+--
+-- Indexes for table `work_orders`
+--
+ALTER TABLE `work_orders`
+  ADD PRIMARY KEY (`id`);
+
+--
+-- Indexes for table `work_order_checklist`
+--
+ALTER TABLE `work_order_checklist`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `work_order_id` (`work_order_id`);
+
+--
+-- Indexes for table `work_order_updates`
+--
+ALTER TABLE `work_order_updates`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `work_order_id` (`work_order_id`);
+
+--
 -- AUTO_INCREMENT for dumped tables
 --
+
+--
+-- AUTO_INCREMENT for table `activity_logs`
+--
+ALTER TABLE `activity_logs`
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+
+--
+-- AUTO_INCREMENT for table `chatbot_messages`
+--
+ALTER TABLE `chatbot_messages`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+
+--
+-- AUTO_INCREMENT for table `chatbot_sessions`
+--
+ALTER TABLE `chatbot_sessions`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+
+--
+-- AUTO_INCREMENT for table `communication_history`
+--
+ALTER TABLE `communication_history`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
 
 --
 -- AUTO_INCREMENT for table `consumers`
 --
 ALTER TABLE `consumers`
   MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=223;
+
+--
+-- AUTO_INCREMENT for table `consumers_auth`
+--
+ALTER TABLE `consumers_auth`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+
+--
+-- AUTO_INCREMENT for table `consumer_requests`
+--
+ALTER TABLE `consumer_requests`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
+
+--
+-- AUTO_INCREMENT for table `consumption_records`
+--
+ALTER TABLE `consumption_records`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=41;
+
+--
+-- AUTO_INCREMENT for table `csv_imports`
+--
+ALTER TABLE `csv_imports`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+
+--
+-- AUTO_INCREMENT for table `deterioration_alerts`
+--
+ALTER TABLE `deterioration_alerts`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+
+--
+-- AUTO_INCREMENT for table `document_templates`
+--
+ALTER TABLE `document_templates`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+
+--
+-- AUTO_INCREMENT for table `emergency_incidents`
+--
+ALTER TABLE `emergency_incidents`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+
+--
+-- AUTO_INCREMENT for table `generated_documents`
+--
+ALTER TABLE `generated_documents`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+
+--
+-- AUTO_INCREMENT for table `infrastructure`
+--
+ALTER TABLE `infrastructure`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
+
+--
+-- AUTO_INCREMENT for table `inventory_items`
+--
+ALTER TABLE `inventory_items`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
+
+--
+-- AUTO_INCREMENT for table `inventory_transactions`
+--
+ALTER TABLE `inventory_transactions`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
+
+--
+-- AUTO_INCREMENT for table `maintenance_schedule`
+--
+ALTER TABLE `maintenance_schedule`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+
+--
+-- AUTO_INCREMENT for table `notifications`
+--
+ALTER TABLE `notifications`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+
+--
+-- AUTO_INCREMENT for table `parcels`
+--
+ALTER TABLE `parcels`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+
+--
+-- AUTO_INCREMENT for table `pipelines`
+--
+ALTER TABLE `pipelines`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
+
+--
+-- AUTO_INCREMENT for table `pipeline_history`
+--
+ALTER TABLE `pipeline_history`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `pipeline_inspection_checklist`
+--
+ALTER TABLE `pipeline_inspection_checklist`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `pipeline_maintenance_events`
+--
+ALTER TABLE `pipeline_maintenance_events`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `pipeline_zones`
+--
+ALTER TABLE `pipeline_zones`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+
+--
+-- AUTO_INCREMENT for table `users`
+--
+ALTER TABLE `users`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+
+--
+-- AUTO_INCREMENT for table `water_interruptions`
+--
+ALTER TABLE `water_interruptions`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `water_meters`
+--
+ALTER TABLE `water_meters`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=21;
+
+--
+-- AUTO_INCREMENT for table `work_orders`
+--
+ALTER TABLE `work_orders`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=111;
+
+--
+-- AUTO_INCREMENT for table `work_order_checklist`
+--
+ALTER TABLE `work_order_checklist`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=35;
+
+--
+-- AUTO_INCREMENT for table `work_order_updates`
+--
+ALTER TABLE `work_order_updates`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
+
+--
+-- Constraints for dumped tables
+--
+
+--
+-- Constraints for table `chatbot_messages`
+--
+ALTER TABLE `chatbot_messages`
+  ADD CONSTRAINT `chatbot_messages_ibfk_1` FOREIGN KEY (`session_id`) REFERENCES `chatbot_sessions` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `communication_history`
+--
+ALTER TABLE `communication_history`
+  ADD CONSTRAINT `communication_history_ibfk_1` FOREIGN KEY (`consumer_id`) REFERENCES `consumers` (`id`);
+
+--
+-- Constraints for table `consumer_requests`
+--
+ALTER TABLE `consumer_requests`
+  ADD CONSTRAINT `consumer_requests_ibfk_1` FOREIGN KEY (`consumer_id`) REFERENCES `consumers` (`id`);
+
+--
+-- Constraints for table `consumption_records`
+--
+ALTER TABLE `consumption_records`
+  ADD CONSTRAINT `consumption_records_ibfk_1` FOREIGN KEY (`consumer_id`) REFERENCES `consumers` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `generated_documents`
+--
+ALTER TABLE `generated_documents`
+  ADD CONSTRAINT `generated_documents_ibfk_1` FOREIGN KEY (`template_id`) REFERENCES `document_templates` (`id`);
+
+--
+-- Constraints for table `inventory_transactions`
+--
+ALTER TABLE `inventory_transactions`
+  ADD CONSTRAINT `inventory_transactions_ibfk_1` FOREIGN KEY (`item_id`) REFERENCES `inventory_items` (`id`);
+
+--
+-- Constraints for table `pipeline_history`
+--
+ALTER TABLE `pipeline_history`
+  ADD CONSTRAINT `pipeline_history_ibfk_1` FOREIGN KEY (`pipeline_id`) REFERENCES `pipelines` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `pipeline_inspection_checklist`
+--
+ALTER TABLE `pipeline_inspection_checklist`
+  ADD CONSTRAINT `pic_pipeline_fk` FOREIGN KEY (`pipeline_id`) REFERENCES `pipelines` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `pipeline_maintenance_events`
+--
+ALTER TABLE `pipeline_maintenance_events`
+  ADD CONSTRAINT `pme_pipeline_fk` FOREIGN KEY (`pipeline_id`) REFERENCES `pipelines` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `water_meters`
+--
+ALTER TABLE `water_meters`
+  ADD CONSTRAINT `water_meters_ibfk_1` FOREIGN KEY (`consumer_id`) REFERENCES `consumers` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `work_order_checklist`
+--
+ALTER TABLE `work_order_checklist`
+  ADD CONSTRAINT `work_order_checklist_ibfk_1` FOREIGN KEY (`work_order_id`) REFERENCES `work_orders` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `work_order_updates`
+--
+ALTER TABLE `work_order_updates`
+  ADD CONSTRAINT `work_order_updates_ibfk_1` FOREIGN KEY (`work_order_id`) REFERENCES `work_orders` (`id`) ON DELETE CASCADE;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
