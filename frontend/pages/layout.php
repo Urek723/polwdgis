@@ -643,8 +643,15 @@ tbody td:first-child { color: var(--text); }
         <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>
         Inventory
       </a>
+      <a href="infrastructure-list.php" class="nav-item <?= $currentPage==='infrastructure-list'?'active':'' ?>">
+    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+        <polyline points="9 22 9 12 15 12 15 22"/>
+    </svg>
+    Infrastructure
+</a>
     </div>
-
+    
     <div class="nav-section">
       <div class="nav-label">Consumers</div>
       <a href="consumers.php" class="nav-item <?= $currentPage==='consumers'?'active':'' ?>">

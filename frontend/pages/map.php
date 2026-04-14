@@ -260,6 +260,10 @@ require_once 'layout.php';
   <div class="legend-item"><div class="legend-dot" style="background:#00c896;"></div> Pump Station</div>
   <div class="legend-item"><div class="legend-line" style="background:#0057ff;"></div> Pipeline (Active)</div>
   <div class="legend-item"><div class="legend-line" style="background:#ff4d6d;"></div> Pipeline (Rehab)</div>
+  <div class="legend-item">
+    <div class="legend-line" style="background:#00d4ff;height:3px;border-radius:2px;"></div>
+    Polomolok Boundary
+</div>
   <div class="legend-item"><div class="legend-dot" style="background:#8b00ff;border:2px solid #fff;"></div> Emergency</div>
   <!-- Shown only when proximity is active -->
   <div class="legend-item legend-prox" id="legendProx">
@@ -412,6 +416,34 @@ const layerGroups = {
   heatmap:   null,
   emergency: L.layerGroup().addTo(map),
 };
+let boundaryLayer  = null;
+let boundaryReady  = false;
+
+fetch('../../assets/geojson/polomolokboundary.geojson')
+    .then(r => r.json())
+    .then(geojson => {
+        boundaryLayer = L.geoJSON(geojson, {
+            style: {
+                color:       '#00d4ff',
+                weight:      3,
+                opacity:     0.85,
+                fillColor:   '#00d4ff',
+                fillOpacity: 0.04,
+            },
+            onEachFeature(feature, layer) {
+                layer.on({
+                    mouseover() {
+                        layer.setStyle({ weight: 5, color: '#ffffff', fillOpacity: 0.08 });
+                    },
+                    mouseout() {
+                        boundaryLayer.resetStyle(layer);
+                    },
+                });
+            },
+        });
+        boundaryReady = true;
+    })
+    .catch(err => console.warn('Boundary load failed:', err));
 
 // ══════════════════════════════════════════════════════════════
 // COORDINATE DISPLAY
@@ -684,7 +716,10 @@ function exitProximityMode() {
     document.getElementById('panelTitle').textContent = 'Feature Info';
   }
 }
-
+document.getElementById('btnPanel').addEventListener('click', () => {
+    document.getElementById('map-panel').classList.toggle('open');
+    setTimeout(() => map.invalidateSize(), 310); // matches CSS transition duration
+});
 /** Toggle proximity mode on/off */
 document.getElementById('btnProximity').addEventListener('click', () => {
   if (proximityMode) {
@@ -962,8 +997,20 @@ document.getElementById('layPipelines').addEventListener('change', e =>
 document.getElementById('layInfra').addEventListener('change', e =>
   e.target.checked ? layerGroups.infra.addTo(map) : map.removeLayer(layerGroups.infra));
 document.getElementById('layParcels').addEventListener('change', e => {
-  if (e.target.checked) { loadParcels(); layerGroups.parcels.addTo(map); }
-  else map.removeLayer(layerGroups.parcels);
+    if (!boundaryReady) {
+        showToast('Boundary still loading, please wait', 'warn');
+        e.target.checked = false;
+        return;
+    }
+    if (e.target.checked) {
+        if (!map.hasLayer(boundaryLayer)) {
+            boundaryLayer.addTo(map);
+        }
+    } else {
+        if (map.hasLayer(boundaryLayer)) {
+            map.removeLayer(boundaryLayer);
+        }
+    }
 });
 document.getElementById('layHeatmap').addEventListener('change', async e => {
   if (e.target.checked) await loadHeatmap();

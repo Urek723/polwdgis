@@ -19,37 +19,32 @@ if (!$infra) {
 
 $pageTitle = htmlspecialchars($infra['name'] ?: $infra['type']);
 
-// Pull maintenance/equipment history for this infrastructure
+// Pull related work orders by location or barangay match
 $histStmt = $db->prepare(
-    "SELECT eh.*, 'equipment_history' AS source_table
-     FROM equipment_history eh
-     WHERE eh.equipment_id = ?
-     ORDER BY eh.date DESC, eh.id DESC
-     LIMIT 50"
-);
-$histStmt->execute([$id]);
-$history = $histStmt->fetchAll();
-
-// Also pull related work orders
-$woStmt = $db->prepare(
-    "SELECT wo.id, wo.title, wo.type, wo.priority, wo.status,
+    "SELECT wo.id, wo.title, wo.type, wo.status, wo.priority,
             wo.scheduled_date, wo.completed_at, wo.downtime_minutes,
+            wo.cause, wo.resolution,
             u.name AS assigned_name
      FROM work_orders wo
      LEFT JOIN users u ON u.id = wo.assigned_to
-     WHERE LOWER(wo.location) LIKE ?
+     WHERE wo.location LIKE ?
+        OR wo.location LIKE ?
      ORDER BY wo.created_at DESC
-     LIMIT 20"
+     LIMIT 50"
 );
-$woStmt->execute(['%' . strtolower($infra['barangay'] ?? '') . '%']);
-$workOrders = $woStmt->fetchAll();
+$barangaySearch = '%' . ($infra['barangay'] ?? '') . '%';
+$nameSearch     = '%' . ($infra['name'] ?? '') . '%';
+$histStmt->execute([$barangaySearch, $nameSearch]);
+$history = $histStmt->fetchAll();
+
+$workOrders = $history;
 
 // Type metadata
 $typeEmojis = [
     'pumping_station' => '🏗️', 'reservoir' => '🗄️', 'valve' => '🔧',
     'hydrant' => '🚒', 'blowoff' => '💨', 'meter_chamber' => '📊', 'other' => '📌',
 ];
-$emoji = $typeEmojis[$infra['type']] ?? '📌';
+$emoji     = $typeEmojis[$infra['type']] ?? '📌';
 $typeLabel = ucwords(str_replace('_', ' ', $infra['type']));
 ?>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
@@ -72,7 +67,6 @@ $typeLabel = ucwords(str_replace('_', ' ', $infra['type']));
   font-size: 28px;
   flex-shrink: 0;
 }
-
 .info-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -87,15 +81,6 @@ $typeLabel = ucwords(str_replace('_', ' ', $infra['type']));
 }
 .info-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 4px; }
 .info-value { font-size: 14px; font-weight: 600; }
-
-/* History table */
-.hist-table-wrap { overflow-x: auto; }
-.action-installed { color: var(--accent3); }
-.action-repaired  { color: var(--accent); }
-.action-replaced  { color: var(--warn); }
-.action-inspected { color: var(--text2); }
-
-/* Work orders summary */
 .wo-mini {
   background: var(--surface2);
   border: 1px solid var(--border);
@@ -108,8 +93,6 @@ $typeLabel = ucwords(str_replace('_', ' ', $infra['type']));
   gap: 10px;
   font-size: 13px;
 }
-
-/* Mini map */
 #detail-map {
   height: 280px;
   width: 100%;
@@ -117,8 +100,6 @@ $typeLabel = ucwords(str_replace('_', ' ', $infra['type']));
   overflow: hidden;
   border: 1px solid var(--border);
 }
-
-/* Tabs */
 .tab-bar {
   display: flex;
   gap: 4px;
@@ -160,7 +141,7 @@ $typeLabel = ucwords(str_replace('_', ' ', $infra['type']));
   <?php if (in_array($_SESSION['role'], ['Admin', 'Staff'])): ?>
   <div style="margin-left:auto;display:flex;gap:8px">
     <a href="infrastructure-add.php?edit=<?= $id ?>" class="btn-secondary" style="font-size:13px;text-decoration:none;padding:8px 14px;border-radius:8px">✏️ Edit</a>
-    <button onclick="openModal('mAddHistory')" class="btn-primary" style="font-size:13px">+ Add History</button>
+    <button onclick="openModal('mAddHistory')" class="btn-primary" style="font-size:13px">+ Add Work Order</button>
   </div>
   <?php endif; ?>
 </div>
@@ -199,38 +180,40 @@ $typeLabel = ucwords(str_replace('_', ' ', $infra['type']));
   <div>
     <div class="card">
       <div class="tab-bar">
-        <button class="tab-btn active" onclick="showTab('history', this)">🔧 History Log</button>
-        <button class="tab-btn" onclick="showTab('workorders', this)">📋 Work Orders</button>
+        <button class="tab-btn active" onclick="showTab('history', this)">🔧 Work Orders</button>
+        <button class="tab-btn" onclick="showTab('workorders', this)">📋 Details</button>
       </div>
 
-      <!-- History Tab -->
+      <!-- Work Orders Tab -->
       <div class="tab-pane active" id="tab-history">
         <?php if (empty($history)): ?>
-          <p style="color:var(--muted);font-size:13px;text-align:center;padding:20px 0">No maintenance history recorded yet.</p>
+          <p style="color:var(--muted);font-size:13px;text-align:center;padding:20px 0">
+            No related work orders found.
+          </p>
         <?php else: ?>
-        <div class="hist-table-wrap">
-          <table>
+        <div style="overflow-x:auto">
+          <table style="width:100%;border-collapse:collapse;font-size:13px">
             <thead>
               <tr>
-                <th>Action</th>
-                <th>Date</th>
-                <th>Notes</th>
+                <th style="padding:8px 12px;text-align:left;font-size:11px;color:var(--muted);text-transform:uppercase;border-bottom:1px solid var(--border)">Title</th>
+                <th style="padding:8px 12px;text-align:left;font-size:11px;color:var(--muted);text-transform:uppercase;border-bottom:1px solid var(--border)">Type</th>
+                <th style="padding:8px 12px;text-align:left;font-size:11px;color:var(--muted);text-transform:uppercase;border-bottom:1px solid var(--border)">Status</th>
+                <th style="padding:8px 12px;text-align:left;font-size:11px;color:var(--muted);text-transform:uppercase;border-bottom:1px solid var(--border)">Date</th>
               </tr>
             </thead>
             <tbody>
-            <?php
-            $actionIcons = ['installed'=>'🔧','repaired'=>'🛠️','replaced'=>'🔄','inspected'=>'🔍'];
-            foreach ($history as $h):
-              $icon = $actionIcons[$h['action']] ?? '📋';
-            ?>
-            <tr>
-              <td>
-                <span class="action-<?= htmlspecialchars($h['action']) ?>" style="font-weight:600">
-                  <?= $icon ?> <?= ucfirst(htmlspecialchars($h['action'])) ?>
+            <?php foreach ($history as $h): ?>
+            <tr style="border-bottom:1px solid rgba(255,255,255,0.04)">
+              <td style="padding:10px 12px;color:var(--text)"><?= htmlspecialchars($h['title']) ?></td>
+              <td style="padding:10px 12px;color:var(--text2)"><?= htmlspecialchars($h['type']) ?></td>
+              <td style="padding:10px 12px">
+                <span class="badge badge-<?= strtolower(str_replace(' ', '-', $h['status'])) ?>">
+                  <?= htmlspecialchars($h['status']) ?>
                 </span>
               </td>
-              <td style="white-space:nowrap;color:var(--muted);font-size:12px"><?= htmlspecialchars($h['date'] ?? '—') ?></td>
-              <td style="font-size:12px;color:var(--text2)"><?= htmlspecialchars($h['notes'] ?? '—') ?></td>
+              <td style="padding:10px 12px;font-size:12px;color:var(--muted)">
+                <?= htmlspecialchars($h['scheduled_date'] ?? $h['completed_at'] ?? '—') ?>
+              </td>
             </tr>
             <?php endforeach; ?>
             </tbody>
@@ -239,20 +222,30 @@ $typeLabel = ucwords(str_replace('_', ' ', $infra['type']));
         <?php endif; ?>
       </div>
 
-      <!-- Work Orders Tab -->
+      <!-- Details Tab -->
       <div class="tab-pane" id="tab-workorders">
         <?php if (empty($workOrders)): ?>
-          <p style="color:var(--muted);font-size:13px;text-align:center;padding:20px 0">No related work orders found.</p>
+          <p style="color:var(--muted);font-size:13px;text-align:center;padding:20px 0">
+            No related work orders found.
+          </p>
         <?php else: ?>
           <?php foreach ($workOrders as $wo): ?>
           <div class="wo-mini">
             <div>
               <div style="font-weight:600"><?= htmlspecialchars($wo['title']) ?></div>
-              <div style="font-size:11px;color:var(--muted)"><?= htmlspecialchars($wo['type']) ?> · <?= htmlspecialchars($wo['assigned_name'] ?? '—') ?></div>
+              <div style="font-size:11px;color:var(--muted)">
+                <?= htmlspecialchars($wo['type']) ?> · <?= htmlspecialchars($wo['assigned_name'] ?? '—') ?>
+              </div>
+              <?php if (!empty($wo['cause'])): ?>
+              <div style="font-size:11px;color:var(--warn);margin-top:2px">⚠️ <?= htmlspecialchars($wo['cause']) ?></div>
+              <?php endif; ?>
+              <?php if (!empty($wo['resolution'])): ?>
+              <div style="font-size:11px;color:var(--accent3);margin-top:2px">✅ <?= htmlspecialchars($wo['resolution']) ?></div>
+              <?php endif; ?>
             </div>
             <div style="display:flex;gap:6px;align-items:center;flex-shrink:0">
-              <span class="badge badge-<?= strtolower(str_replace(' ','-',$wo['priority'])) ?>"><?= htmlspecialchars($wo['priority']) ?></span>
-              <span class="badge badge-<?= strtolower(str_replace(' ','-',$wo['status'])) ?>"><?= htmlspecialchars($wo['status']) ?></span>
+              <span class="badge badge-<?= strtolower(str_replace(' ', '-', $wo['priority'])) ?>"><?= htmlspecialchars($wo['priority']) ?></span>
+              <span class="badge badge-<?= strtolower(str_replace(' ', '-', $wo['status'])) ?>"><?= htmlspecialchars($wo['status']) ?></span>
               <a href="work-orders.php?id=<?= $wo['id'] ?>" style="font-size:11px;color:var(--accent);text-decoration:none">View →</a>
             </div>
           </div>
@@ -281,35 +274,51 @@ $typeLabel = ucwords(str_replace('_', ' ', $infra['type']));
 
 </div>
 
-<!-- Add History Modal -->
+<!-- Add Work Order Modal -->
 <?php if (in_array($_SESSION['role'], ['Admin', 'Staff'])): ?>
 <div id="mAddHistory" class="modal-overlay">
   <div class="modal-box" style="max-width:440px">
     <div class="modal-header">
-      <h3>Add History Entry</h3>
+      <h3>Add Work Order</h3>
       <button onclick="closeModal('mAddHistory')">✕</button>
     </div>
     <div style="padding:16px;display:flex;flex-direction:column;gap:10px">
       <div>
-        <label class="form-label">Action *</label>
-        <select id="hAction" class="form-input">
-          <option value="installed">🔧 Installed</option>
-          <option value="repaired">🛠️ Repaired</option>
-          <option value="replaced">🔄 Replaced</option>
-          <option value="inspected">🔍 Inspected</option>
+        <label class="form-label">Title *</label>
+        <input type="text" id="woTitle" class="form-input" placeholder="e.g. Valve inspection">
+      </div>
+      <div>
+        <label class="form-label">Type</label>
+        <select id="woType" class="form-input">
+          <option>Valve</option>
+          <option>Pump</option>
+          <option>Reservoir</option>
+          <option>Mainline</option>
+          <option>Serviceline</option>
+          <option>Electrical</option>
+          <option>Other</option>
         </select>
       </div>
       <div>
-        <label class="form-label">Date *</label>
-        <input type="date" id="hDate" class="form-input" value="<?= date('Y-m-d') ?>">
+        <label class="form-label">Priority</label>
+        <select id="woPriority" class="form-input">
+          <option>Medium</option>
+          <option>Low</option>
+          <option>High</option>
+          <option>Critical</option>
+        </select>
       </div>
       <div>
-        <label class="form-label">Notes</label>
-        <textarea id="hNotes" class="form-input" rows="3" placeholder="What was done? Parts replaced? Findings?"></textarea>
+        <label class="form-label">Scheduled Date</label>
+        <input type="date" id="woDate" class="form-input">
+      </div>
+      <div>
+        <label class="form-label">Description</label>
+        <textarea id="woDesc" class="form-input" rows="3" placeholder="Details about the work to be done…"></textarea>
       </div>
       <div style="display:flex;gap:8px;justify-content:flex-end">
         <button onclick="closeModal('mAddHistory')" class="btn-secondary">Cancel</button>
-        <button onclick="submitHistory()" class="btn-primary">Save Entry</button>
+        <button onclick="submitWorkOrder()" class="btn-primary">Create Work Order</button>
       </div>
     </div>
   </div>
@@ -325,12 +334,16 @@ function showTab(id, btn) {
   btn.classList.add('active');
 }
 
-// ── Mini map (only when coords exist) ────────────────────────
+// ── Mini map ──────────────────────────────────────────────────
 <?php if ($infra['latitude'] && $infra['longitude']): ?>
-(function() {
+(function () {
   const lat  = <?= (float)$infra['latitude'] ?>;
   const lng  = <?= (float)$infra['longitude'] ?>;
-  const m    = L.map('detail-map', { center: [lat, lng], zoom: 16, zoomControl: true, attributionControl: false });
+  const m    = L.map('detail-map', {
+    center: [lat, lng], zoom: 16,
+    zoomControl: true,
+    attributionControl: false,
+  });
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 20 }).addTo(m);
   const icon = L.divIcon({
     className: '',
@@ -340,32 +353,35 @@ function showTab(id, btn) {
   });
   L.marker([lat, lng], { icon })
    .addTo(m)
-   .bindPopup('<?= addslashes($infra['name'] ?: $typeLabel) ?>')
+   .bindPopup('<?= addslashes(htmlspecialchars($infra['name'] ?: $typeLabel)) ?>')
    .openPopup();
 })();
 <?php endif; ?>
 
-// ── Add history entry ─────────────────────────────────────────
-async function submitHistory() {
-  const action = document.getElementById('hAction').value;
-  const date   = document.getElementById('hDate').value;
-  const notes  = document.getElementById('hNotes').value;
-  if (!date) { showToast('Date is required', 'error'); return; }
+// ── Submit work order ─────────────────────────────────────────
+async function submitWorkOrder() {
+  const title = document.getElementById('woTitle').value.trim();
+  if (!title) { showToast('Title is required', 'error'); return; }
 
-  const r = await apiPost('equipment_history.php', {
-    action:       'save_history',
-    equipment_id: <?= $id ?>,
-    action_type:  action,
-    date,
-    notes,
+  const r = await apiPost('maintenance.php', {
+    action:         'save_work_order',
+    title,
+    description:    document.getElementById('woDesc').value,
+    type:           document.getElementById('woType').value,
+    priority:       document.getElementById('woPriority').value,
+    scheduled_date: document.getElementById('woDate').value,
+    location:       <?= json_encode($infra['name'] . ' — ' . ($infra['barangay'] ?? '')) ?>,
+    latitude:       <?= json_encode($infra['latitude'] ?? '') ?>,
+    longitude:      <?= json_encode($infra['longitude'] ?? '') ?>,
   });
 
   if (r.success) {
-    showToast('History entry saved', 'success');
+    showToast('Work order created', 'success');
     closeModal('mAddHistory');
     setTimeout(() => window.location.reload(), 800);
   } else {
-    showToast(r.error || 'Failed', 'error');
+    showToast(r.error || 'Failed to create work order', 'error');
   }
 }
 </script>
+</main>
