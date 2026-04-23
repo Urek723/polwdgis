@@ -49,6 +49,10 @@ body::before { content:''; position:fixed; inset:0; background-image: linear-gra
     <div class="field"><label>Full Name</label><input type="text" id="name" placeholder="Juan Dela Cruz"></div>
     <div class="field"><label>Account Number</label><input type="text" id="acct" placeholder="Found on your water bill"></div>
     <div class="field"><label>Contact Number</label><input type="tel" id="contact" placeholder="09XXXXXXXXX"></div>
+    <div class="field">
+  <label>Email Address</label>
+  <input type="email" id="email" placeholder="youremail@gmail.com">
+</div>
     <div class="field"><label>Password</label><input type="password" id="pass" placeholder="At least 6 characters"></div>
     <div class="field"><label>Confirm Password</label><input type="password" id="pass2" placeholder="Re-enter password"></div>
     <button class="btn" id="regBtn" onclick="doRegister()">Create Account</button>
@@ -60,15 +64,17 @@ async function doRegister() {
   const name    = document.getElementById('name').value.trim();
   const acct    = document.getElementById('acct').value.trim();
   const contact = document.getElementById('contact').value.trim();
+  const email = document.getElementById('email').value.trim();
   const pass    = document.getElementById('pass').value;
   const pass2   = document.getElementById('pass2').value;
   const err = document.getElementById('errMsg');
   const ok  = document.getElementById('okMsg');
   err.style.display = 'none'; ok.style.display = 'none';
 
-  if (!name || !acct || !contact || !pass || !pass2) { err.textContent = 'All fields are required.'; err.style.display = 'block'; return; }
+  if (!name || !acct || !contact || !email || !pass || !pass2) { err.textContent = 'All fields are required.'; err.style.display = 'block'; return; }
   if (pass !== pass2) { err.textContent = 'Passwords do not match.'; err.style.display = 'block'; return; }
   if (pass.length < 6) { err.textContent = 'Password must be at least 6 characters.'; err.style.display = 'block'; return; }
+  if (!isValidEmail(email)) { err.textContent = 'Please enter a valid email address.'; err.style.display = 'block'; return; }
 
   const btn = document.getElementById('regBtn');
   btn.disabled = true; btn.textContent = 'Creating…';
@@ -78,6 +84,7 @@ async function doRegister() {
   fd.append('name', name);
   fd.append('account_number', acct);
   fd.append('contact_number', contact);
+  fd.append('email', email);
   fd.append('password', pass);
 
   try {

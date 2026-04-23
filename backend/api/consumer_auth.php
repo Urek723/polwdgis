@@ -21,31 +21,50 @@ function handleRegister(): void {
     $name           = trim($_POST['name'] ?? '');
     $account_number = trim($_POST['account_number'] ?? '');
     $contact_number = trim($_POST['contact_number'] ?? '');
+    $email          = trim($_POST['email'] ?? '');
     $password       = $_POST['password'] ?? '';
 
-    if (!$name || !$account_number || !$contact_number || !$password) {
+    // ── Validation ─────────────────────────────
+    if (!$name || !$account_number || !$contact_number || !$email || !$password) {
         jsonResponse(['error' => 'All fields are required'], 422);
     }
+
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        jsonResponse(['error' => 'Invalid email address'], 422);
+    }
+
     if (strlen($password) < 6) {
         jsonResponse(['error' => 'Password must be at least 6 characters'], 422);
     }
 
     $db = getDB();
 
+    // ── Check duplicate account number ────────
     $check = $db->prepare("SELECT id FROM consumers_auth WHERE account_number = ?");
     $check->execute([$account_number]);
     if ($check->fetch()) {
         jsonResponse(['error' => 'Account number already registered'], 409);
     }
 
+    // ── OPTIONAL: Check duplicate email ───────
+    $checkEmail = $db->prepare("SELECT id FROM consumers_auth WHERE email = ?");
+    $checkEmail->execute([$email]);
+    if ($checkEmail->fetch()) {
+        jsonResponse(['error' => 'Email already registered'], 409);
+    }
+
+    // ── INSERT USER ───────────────────────────
     $stmt = $db->prepare(
-        "INSERT INTO consumers_auth (name, account_number, contact_number, password_hash)
-         VALUES (?, ?, ?, ?)"
+        "INSERT INTO consumers_auth 
+        (name, account_number, contact_number, email, password_hash)
+        VALUES (?, ?, ?, ?, ?)"
     );
+
     $stmt->execute([
         $name,
         $account_number,
         $contact_number,
+        $email,
         password_hash($password, PASSWORD_BCRYPT),
     ]);
 

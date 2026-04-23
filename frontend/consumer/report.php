@@ -88,9 +88,9 @@ map.on('click', (e) => {
 });
 
 async function submitReport() {
-  const issueType   = document.getElementById('issueType').value;
-  const description = document.getElementById('description').value.trim();
-  const contact     = document.getElementById('contact').value.trim();
+  const issueType    = document.getElementById('issueType').value;
+  const description  = document.getElementById('description').value.trim();
+  const contact      = document.getElementById('contact').value.trim();
   const locationText = document.getElementById('locationText').value.trim();
   const errEl = document.getElementById('errMsg');
   const okEl  = document.getElementById('okMsg');
@@ -98,43 +98,68 @@ async function submitReport() {
   okEl.style.display  = 'none';
 
   if (!issueType)   { errEl.textContent = 'Please select an issue type.'; errEl.style.display = 'block'; return; }
-  if (!description) { errEl.textContent = 'Please enter a description.'; errEl.style.display = 'block'; return; }
-  if (!selectedLat || !selectedLng) { errEl.textContent = 'Please click on the map to set the issue location.'; errEl.style.display = 'block'; return; }
+  if (!description) { errEl.textContent = 'Please enter a description.';  errEl.style.display = 'block'; return; }
+  if (selectedLat === null || selectedLng === null) {
+    errEl.textContent = 'Please click on the map to set the issue location.';
+    errEl.style.display = 'block';
+    return;
+  }
 
   const btn = document.getElementById('submitBtn');
-  btn.disabled = true; btn.textContent = 'Submitting…';
-
-  const fd = new FormData();
-  fd.append('action', 'submit_request');
-  fd.append('issue_type', issueType);
-  fd.append('description', description);
-  fd.append('contact', contact);
-  fd.append('latitude', selectedLat);
-  fd.append('longitude', selectedLng);
-  fd.append('location_text', locationText);
+  btn.disabled = true;
+  btn.textContent = 'Submitting…';
 
   try {
-    const res  = await fetch(CONSUMER_API, { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: fd });
+    const fd = new FormData();
+    fd.append('action',        'submit_request');
+    fd.append('issue_type',    issueType);
+    fd.append('description',   description);
+    fd.append('contact',       contact);
+    fd.append('latitude',      selectedLat);
+    fd.append('longitude',     selectedLng);
+    fd.append('location_text', locationText);
+
+    const res = await fetch(CONSUMER_API, {
+      method:  'POST',
+      headers: { 'X-Requested-With': 'XMLHttpRequest' },
+      body:    fd,
+    });
+
+    // Guard: check Content-Type before parsing JSON
+    const contentType = res.headers.get('Content-Type') || '';
+    if (!contentType.includes('application/json')) {
+      const rawText = await res.text();
+      console.error('Non-JSON response:', rawText);
+      errEl.textContent = 'Server error — unexpected response. Check browser console for details.';
+      errEl.style.display = 'block';
+      return;
+    }
+
     const data = await res.json();
+
     if (data.success) {
-      okEl.textContent = `✅ Report submitted successfully! Request #${data.id}`;
+      okEl.textContent = `✅ Report submitted successfully! Reference #${String(data.id).padStart(5, '0')}`;
       okEl.style.display = 'block';
+
       // Reset form
-      document.getElementById('issueType').value   = '';
-      document.getElementById('description').value = '';
+      document.getElementById('issueType').value    = '';
+      document.getElementById('description').value  = '';
       document.getElementById('locationText').value = '';
       if (marker) { map.removeLayer(marker); marker = null; }
-      selectedLat = null; selectedLng = null;
+      selectedLat = null;
+      selectedLng = null;
       document.getElementById('coordDisplay').textContent = 'No location selected yet.';
     } else {
-      errEl.textContent = data.error || 'Submission failed.';
+      errEl.textContent  = data.error || 'Submission failed. Please try again.';
       errEl.style.display = 'block';
     }
-  } catch {
-    errEl.textContent = 'Network error. Please try again.';
+  } catch (err) {
+    console.error('Fetch error:', err);
+    errEl.textContent  = 'Network error — please check your connection and try again.';
     errEl.style.display = 'block';
   } finally {
-    btn.disabled = false; btn.textContent = 'Submit Report';
+    btn.disabled    = false;
+    btn.textContent = 'Submit Report';
   }
 }
 </script>

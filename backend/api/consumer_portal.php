@@ -37,61 +37,112 @@ switch ($action) {
 
 // ── Submit Request ────────────────────────────────────────────
 function submitRequest(int $consumer_auth_id): void {
-    $data = json_decode(file_get_contents('php://input'), true) ?? $_POST;
-    $db   = getDB();
 
-    $issue_type   = trim($data['issue_type'] ?? '');
-    $description  = trim($data['description'] ?? '');
-    $contact      = trim($data['contact'] ?? '');
-    $lat          = isset($data['latitude'])  && $data['latitude']  !== '' ? $data['latitude']  : null;
-    $lng          = isset($data['longitude']) && $data['longitude'] !== '' ? $data['longitude'] : null;
-    $loc_text     = trim($data['location_text'] ?? '');
+    // Always output JSON — catch any fatal errors
+    try {
+        $db = getDB();
 
-    $allowed_types = ['Leak', 'Low Pressure', 'No Water', 'General Inquiry'];
-    if (!in_array($issue_type, $allowed_types)) {
-        jsonResponse(['error' => 'Invalid issue type'], 422);
+        // Accept both JSON body and POST fields
+        $data = json_decode(file_get_contents('php://input'), true);
+        if (!is_array($data)) {
+            $data = $_POST;
+        }
+
+        $issue_type   = trim($data['issue_type']     ?? '');
+        $description  = trim($data['description']    ?? '');
+        $contact      = trim($data['contact']        ?? '');
+        $loc_text     = trim($data['location_text']  ?? '');
+
+        // Latitude / longitude — allow string '0' but reject missing
+        $lat = (isset($data['latitude'])  && $data['latitude']  !== '') ? $data['latitude']  : null;
+        $lng = (isset($data['longitude']) && $data['longitude'] !== '') ? $data['longitude'] : null;
+
+        // Validate issue type
+        $allowed_issue_types = ['Leak', 'Low Pressure', 'No Water', 'General Inquiry'];
+        if (!in_array($issue_type, $allowed_issue_types)) {
+            jsonResponse(['error' => 'Invalid issue type. Must be one of: ' . implode(', ', $allowed_issue_types)], 422);
+        }
+
+        if (!$description) {
+            jsonResponse(['error' => 'Description is required'], 422);
+        }
+
+        if ($lat === null || $lng === null) {
+            jsonResponse(['error' => 'Location pin is required — please click on the map'], 422);
+        }
+
+        // Map issue_type to a valid request_type ENUM value
+        // consumer_requests.request_type ENUM: 'New Connection','Disconnection','Reconnection','Repair','Billing Dispute','Other'
+        $request_type_map = [
+            'Leak'            => 'Repair',
+            'Low Pressure'    => 'Repair',
+            'No Water'        => 'Repair',
+            'General Inquiry' => 'Other',
+        ];
+        $request_type = $request_type_map[$issue_type] ?? 'Other';
+
+        // Build subject
+        $subject = $issue_type . ' - ' . mb_substr($description, 0, 80);
+
+        // Build details (include contact if provided)
+        $details = $description;
+        if ($contact) {
+            $details .= "\n\nContact: " . $contact;
+        }
+
+        $stmt = $db->prepare(
+            "INSERT INTO consumer_requests
+             (consumer_auth_id, request_type, subject, details, latitude, longitude,
+              location_text, status, priority)
+             VALUES (?, ?, ?, ?, ?, ?, ?, 'Submitted', 'Normal')"
+        );
+        $stmt->execute([
+            $consumer_auth_id,
+            $request_type,
+            $subject,
+            $details,
+            $lat,
+            $lng,
+            $loc_text,
+        ]);
+        $requestId = (int) $db->lastInsertId();
+
+        // ── In-app notification ───────────────────────────────────
+        try {
+            insertConsumerNotification(
+                $db,
+                $consumer_auth_id,
+                'message',
+                "Request #{$requestId} Submitted",
+                "Your {$issue_type} report has been received and is under review. " .
+                "Reference: #" . str_pad($requestId, 5, '0', STR_PAD_LEFT)
+            );
+        } catch (Throwable $notifErr) {
+            error_log('[SubmitRequest] Notification insert failed: ' . $notifErr->getMessage());
+            // Non-fatal — continue
+        }
+
+        // ── Email notification (non-fatal) ────────────────────────
+        try {
+            sendRequestEmailIfPossible(
+                $db,
+                $consumer_auth_id,
+                $requestId,
+                $issue_type,
+                $subject,
+                $details
+            );
+        } catch (Throwable $emailErr) {
+            error_log('[SubmitRequest] Email failed: ' . $emailErr->getMessage());
+            // Non-fatal — continue
+        }
+
+        jsonResponse(['success' => true, 'id' => $requestId]);
+
+    } catch (Throwable $e) {
+        error_log('[SubmitRequest] Fatal error: ' . $e->getMessage());
+        jsonResponse(['error' => 'Server error: ' . $e->getMessage()], 500);
     }
-    if (!$description) {
-        jsonResponse(['error' => 'Description is required'], 422);
-    }
-    if ($lat === null || $lng === null) {
-        jsonResponse(['error' => 'Location pin is required'], 422);
-    }
-
-    $details = $description;
-    if ($contact) $details .= "\n\nContact: $contact";
-
-    $stmt = $db->prepare(
-        "INSERT INTO consumer_requests
-         (consumer_auth_id, request_type, subject, details, latitude, longitude,
-          location_text, status, priority)
-         VALUES (?, ?, ?, ?, ?, ?, ?, 'Submitted', 'Normal')"
-    );
-    $stmt->execute([
-        $consumer_auth_id,
-        $issue_type,
-        $issue_type . ' - ' . mb_substr($description, 0, 80),
-        $details,
-        $lat,
-        $lng,
-        $loc_text,
-    ]);
-    $requestId = (int) $db->lastInsertId();
-
-    // ── In-app notification ───────────────────────────────────
-    insertConsumerNotification($db, $consumer_auth_id, 'message',
-        "Request #{$requestId} Submitted",
-        "Your {$issue_type} request has been received and is under review. Reference: #" . str_pad($requestId, 5, '0', STR_PAD_LEFT)
-    );
-
-    // ── Email notification (non-fatal) ────────────────────────
-    sendRequestEmailIfPossible(
-        $db, $consumer_auth_id, $requestId, $issue_type,
-        $issue_type . ' - ' . mb_substr($description, 0, 80),
-        $details
-    );
-
-    jsonResponse(['success' => true, 'id' => $requestId]);
 }
 
 // ── Get My Requests ───────────────────────────────────────────
@@ -128,18 +179,26 @@ function submitInquiry(int $consumer_auth_id): void {
     $rid = (int) $db->lastInsertId();
 
     // Store in communication_history for staff visibility
-    $stmt2 = $db->prepare(
-        "INSERT INTO communication_history
-         (channel, direction, subject, message, related_request_id)
-         VALUES ('Portal', 'Inbound', ?, ?, ?)"
-    );
-    $stmt2->execute([$subject, $message, $rid]);
+    try {
+        $stmt2 = $db->prepare(
+            "INSERT INTO communication_history
+             (channel, direction, subject, message, related_request_id)
+             VALUES ('Portal', 'Inbound', ?, ?, ?)"
+        );
+        $stmt2->execute([$subject, $message, $rid]);
+    } catch (Throwable $e) {
+        error_log('[SubmitInquiry] comm_history insert failed: ' . $e->getMessage());
+    }
 
     // In-app notification
-    insertConsumerNotification($db, $consumer_auth_id, 'message',
-        "Inquiry #{$rid} Submitted",
-        "Your inquiry \"" . mb_substr($subject, 0, 60) . "\" has been received. We'll respond soon."
-    );
+    try {
+        insertConsumerNotification($db, $consumer_auth_id, 'message',
+            "Inquiry #{$rid} Submitted",
+            "Your inquiry \"" . mb_substr($subject, 0, 60) . "\" has been received. We'll respond soon."
+        );
+    } catch (Throwable $e) {
+        error_log('[SubmitInquiry] Notification failed: ' . $e->getMessage());
+    }
 
     jsonResponse(['success' => true, 'id' => $rid]);
 }
@@ -186,8 +245,8 @@ function getMyNotifications(int $consumer_auth_id): void {
     $sql    = "SELECT * FROM notifications WHERE consumer_auth_id = ?";
     $params = [$consumer_auth_id];
 
-    if ($type)         { $sql .= " AND type = ?";      $params[] = $type; }
-    if ($is_read !== '') { $sql .= " AND is_read = ?"; $params[] = (int)$is_read; }
+    if ($type)           { $sql .= " AND type = ?";      $params[] = $type; }
+    if ($is_read !== '') { $sql .= " AND is_read = ?";   $params[] = (int)$is_read; }
 
     $sql .= " ORDER BY created_at DESC LIMIT 100";
     $stmt = $db->prepare($sql);
@@ -235,7 +294,6 @@ function getUnreadCount(int $consumer_auth_id): void {
 
 /**
  * Insert a notification for a consumer (by consumer_auth_id).
- * Uses consumer_auth_id column — add it to notifications table if missing.
  */
 function insertConsumerNotification(
     PDO    $db,
@@ -245,7 +303,6 @@ function insertConsumerNotification(
     string $message
 ): void {
     try {
-        // Check if consumer_auth_id column exists; fall back to consumer_id if not
         $cols = $db->query("SHOW COLUMNS FROM notifications")->fetchAll(PDO::FETCH_COLUMN);
 
         if (in_array('consumer_auth_id', $cols)) {
@@ -254,7 +311,7 @@ function insertConsumerNotification(
                  VALUES (?, ?, ?, ?, 0)"
             )->execute([$consumerAuthId, $type, $title, $message]);
         } else {
-            // Fallback: store with consumer_id = null (visible to staff)
+            // Fallback: store without consumer link (staff-visible only)
             $db->prepare(
                 "INSERT INTO notifications (type, title, message, is_read)
                  VALUES (?, ?, ?, 0)"
@@ -280,9 +337,12 @@ function sendRequestEmailIfPossible(
     if (!function_exists('sendRequestSubmittedEmail')) return;
 
     try {
-        // Try consumers_auth first
+        // consumers_auth table doesn't have email column — gracefully skip
+        $cols = $db->query("SHOW COLUMNS FROM consumers_auth")->fetchAll(PDO::FETCH_COLUMN);
+        if (!in_array('email', $cols)) return;
+
         $stmt = $db->prepare(
-            "SELECT name, NULL AS email FROM consumers_auth WHERE id = ? LIMIT 1"
+            "SELECT name, email FROM consumers_auth WHERE id = ? LIMIT 1"
         );
         $stmt->execute([$consumerAuthId]);
         $row = $stmt->fetch();
