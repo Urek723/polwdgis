@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Apr 14, 2026 at 03:32 PM
+-- Generation Time: Apr 23, 2026 at 11:19 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -53,7 +53,16 @@ INSERT INTO `activity_logs` (`id`, `user_id`, `action`, `table_name`, `record_id
 (8, 3, 'login', 'users', '3', 'User logged in', '::1', '2026-04-14 20:53:53'),
 (9, 0, 'login_failed', 'users', '12344', 'Invalid credentials', '::1', '2026-04-14 21:30:43'),
 (10, 3, 'login', 'users', '3', 'User logged in', '::1', '2026-04-14 21:30:51'),
-(11, 3, 'logout', 'users', '3', 'User logged out', '::1', '2026-04-14 21:31:14');
+(11, 3, 'logout', 'users', '3', 'User logged out', '::1', '2026-04-14 21:31:14'),
+(12, 3, 'login', 'users', '3', 'User logged in', '::1', '2026-04-14 21:53:09'),
+(13, 3, 'update_request', 'consumer_requests', '11', 'Status: Resolved', '::1', '2026-04-14 21:53:20'),
+(14, 3, 'logout', 'users', '3', 'User logged out', '::1', '2026-04-14 21:54:53'),
+(15, 3, 'login', 'users', '3', 'User logged in', '::1', '2026-04-14 22:00:30'),
+(16, 3, 'update_request', 'consumer_requests', '13', 'Status: Open', '::1', '2026-04-14 22:00:40'),
+(17, 3, 'update_request', 'consumer_requests', '13', 'Status: Resolved', '::1', '2026-04-14 22:00:53'),
+(18, 3, 'logout', 'users', '3', 'User logged out', '::1', '2026-04-14 22:10:07'),
+(19, 3, 'login', 'users', '3', 'User logged in', '::1', '2026-04-23 10:30:57'),
+(20, 3, 'login', 'users', '3', 'User logged in', '::1', '2026-04-23 14:32:38');
 
 -- --------------------------------------------------------
 
@@ -415,6 +424,7 @@ CREATE TABLE `consumers_auth` (
   `name` varchar(150) NOT NULL,
   `account_number` varchar(50) NOT NULL,
   `contact_number` varchar(30) NOT NULL,
+  `email` varchar(255) DEFAULT NULL,
   `password_hash` varchar(255) NOT NULL,
   `is_active` tinyint(1) DEFAULT 1,
   `created_at` datetime NOT NULL DEFAULT current_timestamp(),
@@ -425,8 +435,9 @@ CREATE TABLE `consumers_auth` (
 -- Dumping data for table `consumers_auth`
 --
 
-INSERT INTO `consumers_auth` (`id`, `name`, `account_number`, `contact_number`, `password_hash`, `is_active`, `created_at`, `updated_at`) VALUES
-(1, 'Juan Dela Cruz', '12344', '09514619889', '$2y$10$VUVl8l/DJidumpUHPKqya.TtQqFw563UfsCsYj1wUTzat8P8n/3Yq', 1, '2026-04-14 17:23:36', '2026-04-14 17:23:36');
+INSERT INTO `consumers_auth` (`id`, `name`, `account_number`, `contact_number`, `email`, `password_hash`, `is_active`, `created_at`, `updated_at`) VALUES
+(1, 'Juan Dela Cruz', '12344', '09514619889', 'kael5426@gmail.com', '$2y$10$VUVl8l/DJidumpUHPKqya.TtQqFw563UfsCsYj1wUTzat8P8n/3Yq', 1, '2026-04-14 17:23:36', '2026-04-14 22:14:31'),
+(2, 'CATULPOS, YELCY  3', '8040153', '09514619889', 'urekmazino723@gmail.com', '$2y$10$bvzleELg4uCOkOssDn3cKeejp9aZ4/lt144WCO2pbDN70grtt6/WS', 1, '2026-04-14 21:55:45', '2026-04-14 22:14:21');
 
 -- --------------------------------------------------------
 
@@ -467,7 +478,11 @@ INSERT INTO `consumer_requests` (`id`, `consumer_id`, `consumer_auth_id`, `reque
 (7, 209, NULL, 'Repair', 'Pipe issue', 'Suspected burst pipe', 6.22190000, 125.06350000, NULL, 'In Progress', 'High', 2, NULL, NULL, '2026-04-14 17:11:31', '2026-04-14 17:11:31'),
 (8, 210, NULL, 'New Connection', 'Subdivision expansion', 'New houses connection', 6.22280000, 125.06450000, NULL, 'Submitted', 'High', 3, NULL, NULL, '2026-04-14 17:11:31', '2026-04-14 17:11:31'),
 (9, 211, NULL, 'Billing Dispute', 'Meter reading issue', 'Wrong reading', 6.22230000, 125.06400000, NULL, 'Under Review', 'Normal', 2, NULL, NULL, '2026-04-14 17:11:31', '2026-04-14 17:11:31'),
-(10, 212, NULL, 'Repair', 'Valve issue', 'Valve not working', 6.22260000, 125.06480000, NULL, 'Resolved', 'High', 3, NULL, NULL, '2026-04-14 17:11:31', '2026-04-14 17:11:31');
+(10, 212, NULL, 'Repair', 'Valve issue', 'Valve not working', 6.22260000, 125.06480000, NULL, 'Resolved', 'High', 3, NULL, NULL, '2026-04-14 17:11:31', '2026-04-14 17:11:31'),
+(11, NULL, 1, 'Repair', 'Low Pressure - 123123', '123123\n\nContact: 09514619889', 6.22482812, 125.08315659, '12312312', 'Resolved', 'Normal', NULL, '2026-04-14 21:53:20', '', '2026-04-14 21:52:51', '2026-04-14 21:53:20'),
+(12, NULL, 2, 'Repair', 'Leak - 123123', '123123\n\nContact: 09514619889', 6.22407158, 125.07008710, '324234', 'Submitted', 'Normal', NULL, NULL, NULL, '2026-04-14 21:56:08', '2026-04-14 21:56:08'),
+(13, NULL, 2, 'Repair', 'Low Pressure - 234234', '234234\n\nContact: 09514619889', 6.22258693, 125.06819852, '', 'Resolved', 'Normal', NULL, '2026-04-14 22:00:53', '', '2026-04-14 22:00:16', '2026-04-14 22:00:53'),
+(14, NULL, 2, 'Repair', 'Low Pressure - 12441', '12441\n\nContact: 09514619889', 6.21954935, 125.07300581, '234234', 'Submitted', 'Normal', NULL, NULL, NULL, '2026-04-14 22:13:10', '2026-04-14 22:13:10');
 
 -- --------------------------------------------------------
 
@@ -843,7 +858,14 @@ INSERT INTO `notifications` (`id`, `user_id`, `consumer_id`, `consumer_auth_id`,
 (2, 3, NULL, NULL, 'system', 'Inventory Low', 'PVC Pipe stock is below reorder level', 0, '2026-04-14 17:11:31'),
 (3, 2, NULL, NULL, 'interruption', 'Water Interruption', 'Scheduled maintenance tomorrow', 0, '2026-04-14 17:11:31'),
 (4, 1, NULL, NULL, 'reminder', 'Report Due', 'Monthly GIS report pending', 0, '2026-04-14 17:11:31'),
-(5, 3, NULL, NULL, 'message', 'Consumer Complaint', 'New billing dispute received', 0, '2026-04-14 17:11:31');
+(5, 3, NULL, NULL, 'message', 'Consumer Complaint', 'New billing dispute received', 0, '2026-04-14 17:11:31'),
+(6, NULL, NULL, 1, 'message', 'Request #11 Submitted', 'Your Low Pressure report has been received and is under review. Reference: #00011', 1, '2026-04-14 21:52:51'),
+(7, NULL, NULL, 1, 'message', 'Request #11 — Resolved', 'Your Repair request (#11) status has been updated to: Resolved.', 0, '2026-04-14 21:53:20'),
+(8, NULL, NULL, 2, 'message', 'Request #12 Submitted', 'Your Leak report has been received and is under review. Reference: #00012', 1, '2026-04-14 21:56:08'),
+(9, NULL, NULL, 2, 'message', 'Request #13 Submitted', 'Your Low Pressure report has been received and is under review. Reference: #00013', 1, '2026-04-14 22:00:16'),
+(10, NULL, NULL, 2, 'message', 'Request #13 — Open', 'Your Repair request (#13) status has been updated to: Open.', 1, '2026-04-14 22:00:40'),
+(11, NULL, NULL, 2, 'message', 'Request #13 — Resolved', 'Your Repair request (#13) status has been updated to: Resolved.', 1, '2026-04-14 22:00:53'),
+(12, NULL, NULL, 2, 'message', 'Request #14 Submitted', 'Your Low Pressure report has been received and is under review. Reference: #00014', 0, '2026-04-14 22:13:10');
 
 -- --------------------------------------------------------
 
@@ -1542,7 +1564,7 @@ ALTER TABLE `work_order_updates`
 -- AUTO_INCREMENT for table `activity_logs`
 --
 ALTER TABLE `activity_logs`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=21;
 
 --
 -- AUTO_INCREMENT for table `chatbot_messages`
@@ -1572,13 +1594,13 @@ ALTER TABLE `consumers`
 -- AUTO_INCREMENT for table `consumers_auth`
 --
 ALTER TABLE `consumers_auth`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `consumer_requests`
 --
 ALTER TABLE `consumer_requests`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=15;
 
 --
 -- AUTO_INCREMENT for table `consumption_records`
@@ -1644,7 +1666,7 @@ ALTER TABLE `maintenance_schedule`
 -- AUTO_INCREMENT for table `notifications`
 --
 ALTER TABLE `notifications`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
 
 --
 -- AUTO_INCREMENT for table `parcels`
