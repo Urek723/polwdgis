@@ -55,7 +55,6 @@ require_once 'layout.php';
   color: var(--accent);
   background: rgba(0,212,255,0.08);
 }
-/* Proximity active state — distinct color */
 .map-btn.proximity-active {
   border-color: var(--warn);
   color: var(--warn);
@@ -107,7 +106,6 @@ require_once 'layout.php';
 .legend-dot  { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
 .legend-line { width: 20px; height: 3px; border-radius: 2px; flex-shrink: 0; }
 
-/* Proximity legend item (shown when proximity active) */
 .legend-prox { display: none; }
 .legend-prox.visible { display: flex; }
 
@@ -263,9 +261,8 @@ require_once 'layout.php';
   <div class="legend-item">
     <div class="legend-line" style="background:#00d4ff;height:3px;border-radius:2px;"></div>
     Polomolok Boundary
-</div>
+  </div>
   <div class="legend-item"><div class="legend-dot" style="background:#8b00ff;border:2px solid #fff;"></div> Emergency</div>
-  <!-- Shown only when proximity is active -->
   <div class="legend-item legend-prox" id="legendProx">
     <div style="width:20px;height:2px;border:1.5px dashed #ffb800;border-radius:2px;flex-shrink:0;"></div> Proximity Radius
   </div>
@@ -484,59 +481,6 @@ function makeEmergencyIcon(severity) {
 }
 
 // ══════════════════════════════════════════════════════════════
-// HOVER-DELAY POPUP SYSTEM
-// Opens popup only after cursor rests on marker for 1 second.
-// Cancels if cursor leaves before the delay completes.
-// ══════════════════════════════════════════════════════════════
-let hoverTimer   = null; // setTimeout reference
-let activePopup  = null; // currently open hover popup marker
-
-/**
- * Attach 1-second hover delay popup to a Leaflet marker.
- * @param {L.Marker|L.CircleMarker} marker  The map marker.
- * @param {string}                  content HTML content for the popup.
- * @param {object}                  opts    Optional L.popup options.
- */
-function attachHoverPopup(marker, content, opts = {}) {
-  const popup = L.popup({
-    closeButton: false,
-    autoClose:   true,
-    ...opts,
-  }).setContent(content);
-
-  marker.on('mouseover', () => {
-    // Clear any previous pending timer
-    clearTimeout(hoverTimer);
-    hoverTimer = setTimeout(() => {
-      // Close previously open hover popup if different marker
-      if (activePopup && activePopup !== marker) {
-        activePopup.closePopup();
-      }
-      marker.bindPopup(popup).openPopup();
-      activePopup = marker;
-    }, 1000); // ← 1-second hover delay
-  });
-
-  marker.on('mouseout', () => {
-    // Cursor left before 1 second — cancel
-    clearTimeout(hoverTimer);
-    hoverTimer = null;
-    // Close the popup only if it wasn't manually clicked open
-    if (!marker.isPopupOpen()) return;
-    marker.closePopup();
-    activePopup = null;
-  });
-
-  // Clicking always opens immediately regardless of hover delay
-  marker.on('click', () => {
-    clearTimeout(hoverTimer);
-    if (activePopup && activePopup !== marker) activePopup.closePopup();
-    marker.bindPopup(popup).openPopup();
-    activePopup = marker;
-  });
-}
-
-// ══════════════════════════════════════════════════════════════
 // DATA LOADERS
 // ══════════════════════════════════════════════════════════════
 async function loadConsumers() {
@@ -547,15 +491,14 @@ async function loadConsumers() {
       if (!c.latitude || !c.longitude) return;
       const icon = makeIcon(c.status === 'Active' ? '#00d4ff' : '#ff4d6d');
       const m    = L.marker([parseFloat(c.latitude), parseFloat(c.longitude)], { icon });
-      const safe = JSON.stringify(c).replace(/"/g, '&quot;');
 
-      attachHoverPopup(m, buildConsumerPopup(c));
+      m.bindPopup(buildConsumerPopup(c), { closeButton: true, autoClose: false });
       m.on('click', () => openFeaturePanel('consumer', c));
       layerGroups.consumers.addLayer(m);
     });
   } catch (e) { console.warn('Consumers load failed', e); }
 }
-
+t
 function buildConsumerPopup(c) {
   const safe = JSON.stringify(c).replace(/"/g, '&quot;');
   return `
@@ -589,8 +532,7 @@ async function loadPipelines() {
         <div class="popup-actions">
           <button class="popup-btn popup-btn-info" onclick='openFeaturePanel("pipeline",${safeObj})'>Details &amp; History</button>
         </div>`;
-      // Pipelines use click popup (lines don't support hover well)
-      line.bindPopup(popupHtml);
+      line.bindPopup(popupHtml, { closeButton: true, autoClose: false });
       layerGroups.pipelines.addLayer(line);
     });
   } catch (e) { console.warn('Pipelines load failed', e); }
@@ -614,7 +556,7 @@ async function loadInfrastructure() {
         <div class="popup-row"><span>Status</span><span>${i.status}</span></div>
         <div class="popup-row"><span>Barangay</span><span>${i.barangay || '—'}</span></div>
         ${i.installation_date ? `<div class="popup-row"><span>Installed</span><span>${i.installation_date}</span></div>` : ''}`;
-      attachHoverPopup(m, popupHtml);
+      m.bindPopup(popupHtml, { closeButton: true, autoClose: false });
       m.on('click', () => openFeaturePanel('infrastructure', i));
       layerGroups.infra.addLayer(m);
     });
@@ -633,7 +575,8 @@ async function loadParcels() {
       poly.bindPopup(`
         <div class="popup-title">${p.parcel_code || 'Parcel'}</div>
         <div class="popup-row"><span>Owner</span><span>${p.owner_name || '—'}</span></div>
-        <div class="popup-row"><span>Area</span><span>${p.area_sqm ? p.area_sqm + ' m²' : '—'}</span></div>`);
+        <div class="popup-row"><span>Area</span><span>${p.area_sqm ? p.area_sqm + ' m²' : '—'}</span></div>`,
+        { closeButton: true, autoClose: false });
       layerGroups.parcels.addLayer(poly);
     });
   } catch (e) { console.warn('Parcels load failed', e); }
@@ -656,7 +599,7 @@ async function loadEmergencies() {
         <div class="popup-actions">
           <button class="popup-btn popup-btn-warn" onclick="resolveEmergency(${inc.id})">Mark Resolved</button>
         </div>`;
-      attachHoverPopup(m, popupHtml);
+      m.bindPopup(popupHtml, { closeButton: true, autoClose: false });
       layerGroups.emergency.addLayer(m);
     });
   } catch (e) { console.warn('Emergency load failed', e); }
@@ -678,16 +621,9 @@ async function loadHeatmap() {
 // ══════════════════════════════════════════════════════════════
 // PROXIMITY ANALYSIS
 // ══════════════════════════════════════════════════════════════
-
-/**
- * All proximity-related layers are stored in this single group.
- * Calling proximityLayer.clearLayers() removes EVERYTHING at once —
- * the radius circle, the center pin, and all result markers.
- */
 const proximityLayer = L.layerGroup().addTo(map);
 let proximityMode    = false;
 
-/** Enter proximity selection mode */
 function enterProximityMode() {
   proximityMode = true;
   document.getElementById('btnProximity').classList.add('proximity-active');
@@ -697,18 +633,14 @@ function enterProximityMode() {
   showToast('Click anywhere on the map to run proximity analysis', 'info');
 }
 
-/** Exit proximity mode and wipe all proximity visuals */
 function exitProximityMode() {
   proximityMode = false;
   document.getElementById('btnProximity').classList.remove('proximity-active');
   document.getElementById('proximity-status').classList.remove('show');
   document.getElementById('legendProx').classList.remove('visible');
   map.getContainer().style.cursor = '';
-
-  // ← The key fix: clear every proximity marker, ring, and pin in one call
   proximityLayer.clearLayers();
 
-  // Also close the side panel if it was showing proximity results
   const title = document.getElementById('panelTitle').textContent;
   if (title === 'Proximity Analysis') {
     document.getElementById('panel-content').innerHTML =
@@ -716,11 +648,12 @@ function exitProximityMode() {
     document.getElementById('panelTitle').textContent = 'Feature Info';
   }
 }
+
 document.getElementById('btnPanel').addEventListener('click', () => {
     document.getElementById('map-panel').classList.toggle('open');
-    setTimeout(() => map.invalidateSize(), 310); // matches CSS transition duration
+    setTimeout(() => map.invalidateSize(), 310);
 });
-/** Toggle proximity mode on/off */
+
 document.getElementById('btnProximity').addEventListener('click', () => {
   if (proximityMode) {
     exitProximityMode();
@@ -730,16 +663,13 @@ document.getElementById('btnProximity').addEventListener('click', () => {
   }
 });
 
-/** Handle map click for proximity analysis */
 map.on('click', async (e) => {
   if (!proximityMode) return;
 
-  // Wipe previous proximity results before drawing new ones
   proximityLayer.clearLayers();
 
   const { lat, lng } = e.latlng;
 
-  // Draw center pin
   const centerPin = L.circleMarker([lat, lng], {
     radius: 7, color: '#fff', weight: 2,
     fillColor: '#ffb800', fillOpacity: 1,
@@ -747,7 +677,6 @@ map.on('click', async (e) => {
   centerPin.bindTooltip('Analysis center', { permanent: false });
   proximityLayer.addLayer(centerPin);
 
-  // Draw animated radius ring (500 m)
   const ring = L.circle([lat, lng], {
     radius:      500,
     color:       '#ffb800',
@@ -759,10 +688,8 @@ map.on('click', async (e) => {
   });
   proximityLayer.addLayer(ring);
 
-  // Fetch nearby features
   const r = await apiGet('gis.php', { action: 'proximity_analysis', lat, lng, radius: 0.5 });
 
-  // Plot nearby infrastructure markers (orange)
   (r.infrastructure || []).forEach(i => {
     const m = L.circleMarker([parseFloat(i.latitude), parseFloat(i.longitude)], {
       radius: 6, color: '#ffb800', weight: 2, fillColor: '#ffb800', fillOpacity: 0.7,
@@ -771,7 +698,6 @@ map.on('click', async (e) => {
     proximityLayer.addLayer(m);
   });
 
-  // Plot nearby consumer markers (cyan)
   (r.consumers || []).forEach(c => {
     const m = L.circleMarker([parseFloat(c.latitude), parseFloat(c.longitude)], {
       radius: 5, color: '#00d4ff', weight: 1.5, fillColor: '#00d4ff', fillOpacity: 0.6,
@@ -780,7 +706,6 @@ map.on('click', async (e) => {
     proximityLayer.addLayer(m);
   });
 
-  // Show results in side panel
   const panel   = document.getElementById('map-panel');
   const content = document.getElementById('panel-content');
   panel.classList.add('open');
@@ -824,8 +749,6 @@ function toggleMeasure() {
 }
 
 map.on('click', (e) => {
-  // Proximity handler above already consumed this event when mode is on;
-  // but using a shared click means we guard here too.
   if (!measuring || proximityMode) return;
   measurePoints.push(e.latlng);
   L.circleMarker(e.latlng, { radius: 5, color: '#00d4ff', fillColor: '#00d4ff', fillOpacity: 1 })
@@ -980,8 +903,6 @@ document.getElementById('btnHeatmap').addEventListener('click', async () => {
 });
 document.getElementById('btnPrint').addEventListener('click', () => window.print());
 document.getElementById('btnLayers').addEventListener('click', () => openModal('layersModal'));
-document.getElementById('btnPanel').addEventListener('click',  () =>
-  document.getElementById('map-panel').classList.toggle('open'));
 document.getElementById('btnEmergency').addEventListener('click', () => {
   const c = map.getCenter();
   document.getElementById('eLat').value = c.lat.toFixed(6);
@@ -1047,7 +968,7 @@ document.getElementById('emergencyForm').addEventListener('submit', async (e) =>
 
 // ── Right-click → emergency form ──────────────────────────────
 map.on('contextmenu', (e) => {
-  if (proximityMode) return; // don't hijack right-click during proximity mode
+  if (proximityMode) return;
   document.getElementById('eLat').value = e.latlng.lat.toFixed(6);
   document.getElementById('eLng').value = e.latlng.lng.toFixed(6);
   openModal('emergencyModal');

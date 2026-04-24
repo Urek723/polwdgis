@@ -1,6 +1,12 @@
 <?php
 $pageTitle = 'Water Interruptions';
 require_once 'layout.php';
+
+// Load email dependencies
+$emailHelperPath = __DIR__ . '/../../backend/notifications/send_email.php';
+if (file_exists($emailHelperPath)) {
+    require_once $emailHelperPath;
+}
 ?>
 <style>
 .int-card{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:10px}
@@ -36,7 +42,7 @@ require_once 'layout.php';
           <input id="iend" type="datetime-local" class="form-input" style="margin-top:4px"></div>
       </div>
       <div style="background:var(--surface);border:1px solid var(--warn);border-radius:8px;padding:10px;font-size:13px;color:var(--warn)">
-        📢 Sending this interruption will push notifications to all active consumers in the affected barangays.
+        📢 Sending this interruption will push notifications to all active consumers in the affected barangays and send email to all registered users.
       </div>
       <div style="display:flex;gap:8px;justify-content:flex-end">
         <button onclick="closeModal('mint')" class="btn-secondary">Cancel</button>
@@ -46,6 +52,95 @@ require_once 'layout.php';
   </div>
 </div>
 </main>
+
+<?php
+// Send emails to all consumers_auth users when an interruption is submitted via POST
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['send_interruption_emails'])) {
+    $intTitle     = htmlspecialchars(trim($_POST['int_title']     ?? 'Water Interruption Notice'));
+    $intDesc      = htmlspecialchars(trim($_POST['int_desc']      ?? ''));
+    $intBarangays = htmlspecialchars(trim($_POST['int_barangays'] ?? ''));
+    $intStart     = htmlspecialchars(trim($_POST['int_start']     ?? ''));
+    $intEnd       = htmlspecialchars(trim($_POST['int_end']       ?? ''));
+
+    if (function_exists('sendEmailNotification')) {
+        try {
+            $db = getDB();
+
+            // Check if email column exists in consumers_auth
+            $cols = $db->query("SHOW COLUMNS FROM consumers_auth")->fetchAll(PDO::FETCH_COLUMN);
+
+            if (in_array('email', $cols)) {
+                $stmt = $db->query(
+                    "SELECT name, email FROM consumers_auth WHERE is_active = 1 AND email IS NOT NULL AND email != ''"
+                );
+                $recipients = $stmt->fetchAll();
+
+                if (!empty($recipients)) {
+                    $subject = 'Service Interruption Notice';
+
+                    $startFormatted = $intStart ? date('F j, Y g:i A', strtotime($intStart)) : 'TBD';
+                    $endFormatted   = $intEnd   ? date('F j, Y g:i A', strtotime($intEnd))   : 'TBD';
+
+                    foreach ($recipients as $recipient) {
+                        if (empty($recipient['email']) || !filter_var($recipient['email'], FILTER_VALIDATE_EMAIL)) {
+                            continue;
+                        }
+
+                        $name = htmlspecialchars($recipient['name'] ?? 'Consumer');
+
+                        $htmlBody = "
+                        <html>
+                        <body style='font-family:Arial,sans-serif;background:#f4f6f9;padding:20px'>
+                          <div style='max-width:600px;margin:auto;background:#fff;padding:28px;border-radius:10px;border:1px solid #dde4ef'>
+                            <div style='text-align:center;margin-bottom:20px'>
+                              <h2 style='color:#0057ff;margin:0'>⚠️ Water Service Interruption</h2>
+                              <p style='color:#555;font-size:13px;margin-top:6px'>Polomolok Water District — Official Notice</p>
+                            </div>
+                            <p style='color:#333;font-size:14px'>Dear <strong>" . $name . "</strong>,</p>
+                            <p style='color:#555;font-size:14px;line-height:1.6'>
+                              We would like to inform you of a scheduled water service interruption that may affect your area.
+                              Please see the details below.
+                            </p>
+                            <div style='background:#f0f4ff;border-left:4px solid #0057ff;border-radius:6px;padding:16px;margin:20px 0'>
+                              <table style='width:100%;border-collapse:collapse;font-size:14px'>
+                                <tr><td style='padding:6px 0;color:#666;width:140px'><strong>Title:</strong></td><td style='color:#222'>" . $intTitle . "</td></tr>
+                                " . ($intDesc      ? "<tr><td style='padding:6px 0;color:#666'><strong>Description:</strong></td><td style='color:#222'>" . nl2br($intDesc) . "</td></tr>" : '') . "
+                                " . ($intBarangays ? "<tr><td style='padding:6px 0;color:#666'><strong>Affected Areas:</strong></td><td style='color:#222'>" . $intBarangays . "</td></tr>" : '') . "
+                                <tr><td style='padding:6px 0;color:#666'><strong>Start:</strong></td><td style='color:#222'>" . $startFormatted . "</td></tr>
+                                <tr><td style='padding:6px 0;color:#666'><strong>End:</strong></td><td style='color:#222'>" . $endFormatted . "</td></tr>
+                              </table>
+                            </div>
+                            <p style='color:#555;font-size:13px;line-height:1.6'>
+                              We apologize for any inconvenience this may cause. Our team is working to restore normal water supply as quickly as possible.
+                            </p>
+                            <p style='color:#555;font-size:13px'>
+                              For urgent concerns, please contact our hotline:<br>
+                              📞 <strong>(083) 999-0000</strong> — Available 24/7<br>
+                              📞 Office: <strong>(083) 123-4567</strong> (Mon–Fri, 8AM–5PM)
+                            </p>
+                            <hr style='border:none;border-top:1px solid #eee;margin:20px 0'>
+                            <p style='text-align:center;color:#aaa;font-size:11px'>
+                              Polomolok Water District · Municipal Compound, Polomolok, South Cotabato
+                            </p>
+                          </div>
+                        </body>
+                        </html>";
+
+                        sendEmailNotification(
+                            $recipient['email'],
+                            $name,
+                            $subject,
+                            $htmlBody
+                        );
+                    }
+                }
+            }
+        } catch (Throwable $e) {
+            error_log('[Interruptions] Email batch send failed: ' . $e->getMessage());
+        }
+    }
+}
+?>
 
 <script>
 async function load(){
@@ -102,17 +197,47 @@ async function sendNotif(id){
 async function submitInt(){
   const title=document.getElementById('ititle').value;
   const barangays=document.getElementById('ibarangays').value;
+  const desc=document.getElementById('idesc').value;
+  const start=document.getElementById('istart').value;
+  const end=document.getElementById('iend').value;
+
   if(!title||!barangays){showToast('Title and barangays are required','error');return;}
-  const r=await apiPost('consumer.php',{action:'save_interruption',
-    title,description:document.getElementById('idesc').value,
+
+  const r=await apiPost('consumer.php',{
+    action:'save_interruption',
+    title,
+    description:desc,
     affected_barangays:barangays,
-    start_datetime:document.getElementById('istart').value,
-    end_datetime:document.getElementById('iend').value});
+    start_datetime:start,
+    end_datetime:end
+  });
+
   if(r?.success||r?.id){
     closeModal('mint');
+
     const notif=await apiPost('consumer.php',{action:'send_interruption',id:r.id});
     load();
     showToast(`Interruption scheduled. Notifications sent to ${notif?.notified||0} consumers`,'success');
+
+    // Send emails to all consumers_auth users via PHP POST
+    try {
+      const fd = new FormData();
+      fd.append('send_interruption_emails', '1');
+      fd.append('int_title',     title);
+      fd.append('int_desc',      desc);
+      fd.append('int_barangays', barangays);
+      fd.append('int_start',     start);
+      fd.append('int_end',       end);
+      await fetch(window.location.href, {
+        method: 'POST',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        body: fd
+      });
+      showToast('Email notifications dispatched to registered users', 'success');
+    } catch(e) {
+      console.error('Email dispatch error:', e);
+    }
+
   } else showToast(r?.error||'Failed','error');
 }
 document.addEventListener('DOMContentLoaded',load);
