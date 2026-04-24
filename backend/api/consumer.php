@@ -9,7 +9,7 @@ $hooksPath = __DIR__ . '/consumer_request_hooks.php';
 if (file_exists($hooksPath)) {
     require_once $hooksPath;
 }
-
+$highConsPath = __DIR__ . '/../consumption/check_high_consumption.php'; if (file_exists($highConsPath)) { require_once $highConsPath; }
 requireAuth();
 header('Content-Type: application/json');
 
@@ -232,7 +232,15 @@ function saveConsumption(): void {
             . "for " . date('F Y', strtotime($data['billing_month'])),
         ]);
     }
-
+// High-consumption hook (>10m³)
+if (function_exists('checkSingleConsumerConsumption')) {
+    checkSingleConsumerConsumption(
+        $db,
+        (int)$data['consumer_id'],
+        $consumption,
+        $data['billing_month']
+    );
+}
     jsonResponse(['success' => true, 'is_alert' => $isAlert, 'consumption' => $consumption]);
 }
 
